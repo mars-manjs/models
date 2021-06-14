@@ -10,9 +10,12 @@
             "dom.iterable"
         ],
         "rootDir": "src",
+        "declaration": true
     },
     "exclude": [
         "build",
-        "node_modules"
+        "node_modules",
+        "testing",
+        "tests"
     ]
 }

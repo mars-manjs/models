@@ -112,15 +112,15 @@ export class BaseDataModel {
 
     async load() {
         if(this.repos.main){
-            this.repos.main?.call()
+            await this.repos.main?.call()
         }
+        await this.loadChildren()
     }
 }
 
 
 
 interface BaseDataItemModelConfig_i extends BaseDataModelConfig_i {
-
 }
 
 const BaseDataItemModelConfigDefaults = {
@@ -140,6 +140,7 @@ export class BaseDataItemModel extends BaseDataModel {
 
 
 interface BaseDataCollectionModelConfig_i extends BaseDataModelConfig_i {
+    collections?: modelClass | {[key: string]: child_i }
 }
 
 const BaseDataCollectionModelConfigDefaults = {
@@ -163,7 +164,6 @@ export class BaseDataCollectionModel extends BaseDataModel {
 
     collections: { [key: string]: BaseDataModel[] }
 
-
     // children: DynamicClass
     constructor(config: BaseDataCollectionModelConfig_i) {
         super({
@@ -184,21 +184,22 @@ export class BaseDataCollectionModel extends BaseDataModel {
     }
 
 
-    loadChildren = async () => {
-        let children = {}
-        if ((this.config.children as modelClass).prototype instanceof BaseDataModel
-            || this.config.children == BaseDataModel
+    loadCollections = async () => {
+
+        let collections = {}
+        if ((this.config.collections as modelClass).prototype instanceof BaseDataModel
+            || this.config.collections == BaseDataModel
         ) {
-            children = { main: { model: this.config.children as modelClass, key: undefined }}
-        } else if (this.config.children instanceof Object) {
-            children = this.config.children
+            collections = { main: { model: this.config.collections as modelClass, key: undefined }}
+        } else if (this.config.collections instanceof Object) {
+            collections = this.config.collections
         }
 
 
         let promises = []
 
-        for (const name of Object.keys(children)) {
-            const child = children[name]
+        for (const name of Object.keys(collections)) {
+            const child = collections[name]
             const childClass = child.model as modelClass
             let out = []
 
@@ -224,7 +225,7 @@ export class BaseDataCollectionModel extends BaseDataModel {
         if(this.repos.main){
             await this.repos.main.call()
         }
-        await this.loadChildren()
+        await this.loadCollections()
         this.asyncState = 'loaded'
     }
 }
