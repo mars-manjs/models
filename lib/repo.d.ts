@@ -1,12 +1,16 @@
 import { state_t } from "./types";
+import { BaseModel } from "./base";
+import { PubSub } from "./pubsub";
 interface BaseRepositoryConfig_i {
     data?: any;
 }
-export declare class BaseRepository {
+export declare class BaseRepository extends BaseModel {
     config: BaseRepositoryConfig_i;
     state: state_t;
     response: any;
     data: any;
+    onLoad: PubSub<any>;
+    onError: PubSub<any>;
     constructor(config: BaseRepositoryConfig_i);
     preCall: () => Promise<any>;
     fetch: () => Promise<any>;
@@ -37,8 +41,10 @@ export declare class APIRepository extends BaseRepository {
     response: Response;
     data: any;
     constructor(config: APIRepositoryConfig_i);
+    get body(): string;
     get options(): {
         method: "CONNECT" | "DELETE" | "GET" | "HEAD" | "OPTIONS" | "PATCH" | "POST" | "PUT" | "TRACE";
+        body: string;
         headers: {
             'Content-Type': string;
         };

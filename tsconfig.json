@@ -1,21 +1,24 @@
 {
     "compilerOptions": {
-        "target": "es5",
+        "target": "esnext",
         "outDir": "lib",
+        "moduleResolution": "node",
         "experimentalDecorators": true,
         "lib": [
-            "es6",
-            "es7",
+            "esnext",
             "dom",
             "dom.iterable"
         ],
         "rootDir": "src",
-        "declaration": true
+        "declaration": true,
+        "types" : ["jest"],
+        "sourceMap": true
     },
     "exclude": [
         "build",
         "node_modules",
         "testing",
-        "tests"
+        "__tests__",
+        "lib"
     ]
 }

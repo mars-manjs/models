@@ -1,9 +1,11 @@
 import { BaseRepository } from "./repo"
-import { state_t } from "./types"
+import { state_t, repoMainMap_i, formMainMap_i, map_i, repoMap_i, repoConfig, formConfig, main_i } from "./types"
 import * as _ from 'lodash'
-import { initConfig, DynamicClass } from "./helpers"
+import { initConfig, Repos } from "./helpers"
 import { BaseFormModel } from "./forms"
-import { times } from "lodash"
+import { observable } from "mobx"
+import { Forms, Children, Collections, Collection, format } from "."
+import { BaseModel } from "./base"
 
 
 
@@ -12,139 +14,194 @@ type modelClass = new (...args: any[]) => BaseDataModel;
 interface child_i { key: string, model: modelClass }
 
 interface BaseDataModelConfig_i {
-    data?: any,
-    repos?: BaseRepository | { [key: string]: BaseRepository } //{repo: BaseRepository}
-    forms?: { [key: string]: BaseFormModel }, //{form: BaseFormModel}
+    data?: any
+    repos?: repoConfig
+    forms?: formConfig
     async?: boolean
     children?: modelClass | {[key: string]: child_i }
     parent?: BaseDataModel
+    parentCollection?: Collection
+    // _collection?: BaseDataModel[]
 }
 
 const BaseDataModelConfigDefaults = {
+    async: true
 } as BaseDataModelConfig_i
 
-export class BaseDataModel {
+export class BaseDataModel extends BaseModel{
     /**
      * BaseDataModel implements the base functionality of BaseDataItemModel and BaseDataCollectionModel
      */
 
 
+    @observable
+    asyncState: state_t
     config: BaseDataCollectionModelConfig_i
-    repos: { [key: string]: BaseRepository }
-    forms: { [key: string]: BaseFormModel }
-    children: { [key: string]: BaseDataModel }
+    _repos: repoMainMap_i
+    _forms: formMainMap_i
+    _children: Children
+    @observable
     _data: any
     parent?: BaseDataModel
+    parentCollection?: Collection
     constructor(config: BaseDataModelConfig_i) {
+        super()
         this.config = initConfig(BaseDataModelConfigDefaults, config)
 
-
         this._data = config.data
-        this.repos = {}
-        this.forms = {}
+        this.asyncState = 'unloaded'
 
-        this.loadRepos()
-        this.loadForms()
+        this._repos = format<repoMainMap_i>(this.config.repos)
+        this._forms = format<formMainMap_i>(this.config.forms)
 
         if(this.config.parent) this.parent = this.config.parent
+        if(this.config.parentCollection) this.parentCollection = this.config.parentCollection
+
+        this._children = new Children(this, this.config.children)
+
+    }
+
+            // loadInit: config.loadInit
+    get repo(){
+        return this.repos.main
+    }
+    get repos(): repoMainMap_i{
+        return this._repos
+    }
+    set repo(repo: BaseRepository){
+        // this._repos = new Repos({main: repo})
+        this._repos = {main: repo}
+    }
+    set repos(repos: repoMainMap_i){
+        // throw error if repos is already defined ?
+        // this._repos = new Repos(repos)
+        this._repos = repos
+    }
+
+
+    get form(){
+        /**
+         * get main form
+         */
+        return this.forms.main
+    }
+    get forms(){
+        /**
+         * get object of forms
+         */
+        return this._forms
+    }
+    set form(form: BaseFormModel){
+        /**
+         * set forms
+         */
+        this._forms = {main: form}
+    }
+    set forms(forms: formMainMap_i){
+        // throw error if repos is already defined ?
+        this._forms = forms
+    }
+
+    get data() {
+        if(this.repo){
+            return this.repo.data
+        }
+        return this._data
     }
 
 
 
-    get state(){
+    preLoad = async () => {
+        /**
+         * TO BE IMPLEMENTED
+         */
+    }
+    postLoad = async () => {
+        /**
+         * TO BE IMPLEMENTED
+         * 
+         * use this for setting form data
+         */
+    }
+    load = async () => {
+        await this.preLoad()
+        this.asyncState = 'loading'
+        if(this.repo){
+            await this.repo.call()
+        }
+        await this._children.load()
+        await this.postLoad()
+        this.asyncState = 'loaded'
+    }
+
+    get state() {
+        if (this.config.async) {
+            return this.asyncState
+        }
         if(this.repos.main){
             return this.repos.main.state
         }
         return 'loaded'
     }
-            // loadInit: config.loadInit
- 
-    loadRepos = () => {
-        if (this.config.repos === undefined) return
-        if (this.config.repos instanceof BaseRepository) {
-            this.repos = { main: this.config.repos }
-        } else if (this.config.repos instanceof Object) {
-            this.repos = this.config.repos
-        }
+
+
+    // form functions
+    onChange(key: string){
+        return this.form.onChange(key)
     }
 
 
-    loadChildren = async () => {
-        let children = {}
-        if ((this.config.children as modelClass).prototype instanceof BaseDataModel
-            || this.config.children == BaseDataModel
-        ) {
-            children = {main: {model: this.config.children as modelClass, key: undefined }}
-        } else if (this.config.children instanceof Object) {
-            children = this.config.children
+    get payload(): any{
+        /**
+         * TODO:
+         * - add toJS from mobx?
+         */
+        return {
+            ...this.form?.data,
+            ...this.child?.payload
         }
-
-
-        let promises = []
-
-        for (const name of Object.keys(children)) {
-            const child = children[name]
-            const childClass = child.model as modelClass
-            const data = child.key ? this.data[child.key] : undefined
-            const c = new childClass({
-                data,
-                parent: this
-            })
-            this.children[name] = c
-            if(this.config.async) promises.push(c.load())
-        }
-        await Promise.all(promises)
+    }
+    get children(){
+        return this._children.children
     }
 
-    loadForms = () => {
-        if (this.config.forms === undefined) return
-        this.forms = this.config.forms
-        // for (const key of Object.keys(this.config.forms)) {
-            // const form = this.config.forms[key]
-            // this.forms[key] = form
-        // }
+    get child(): BaseDataModel{
+        return this.children.main
     }
 
-    get data() {
-        return this.repos.main.data
+    // Collection Functions
+
+    get defaultData(){
+        /**
+         * returns the default data to instantiate a new item in the collection
+         * 
+         * TODO: should this be an option in the BaseDataModelConfig  
+         */
+        return undefined
     }
 
+    add = () => {
+        /**
+         * BaseDataModel adds to parent
+         * BaseDataCollectionModel adds to collections.main
+         */
+        this.parentCollection?.add(this.defaultData)
+    }
 
-    async load() {
-        if(this.repos.main){
-            await this.repos.main?.call()
-        }
-        await this.loadChildren()
+    remove = () => { 
+        /**
+         * BaseDataModel removes from parent
+         * BaseDataCollectionModel removes from collections.main
+         */
+        this.parentCollection?.remove(this)
     }
 }
-
-
-
-interface BaseDataItemModelConfig_i extends BaseDataModelConfig_i {
-}
-
-const BaseDataItemModelConfigDefaults = {
-
-} as BaseDataCollectionModelConfig_i
-
-
-export class BaseDataItemModel extends BaseDataModel {
-    /**
-     * BaseDataItemModel is for a single data model
-     * 
-     * i.e. WikiSection, WikiPage
-     */
-}
-
-
-
 
 interface BaseDataCollectionModelConfig_i extends BaseDataModelConfig_i {
     collections?: modelClass | {[key: string]: child_i }
 }
 
 const BaseDataCollectionModelConfigDefaults = {
-    async: true,
     ...BaseDataModelConfigDefaults
 } as BaseDataCollectionModelConfig_i
 
@@ -159,73 +216,64 @@ export class BaseDataCollectionModel extends BaseDataModel {
      * - how to set the state of loaded only after having iterated through children
      * - async / sync collection
      */
-    asyncState: state_t
     config: BaseDataCollectionModelConfig_i
 
-    collections: { [key: string]: BaseDataModel[] }
-
+    _collections: Collections
+ 
     // children: DynamicClass
     constructor(config: BaseDataCollectionModelConfig_i) {
         super({
+            data: config.data,
             repos: config.repos,
             forms: config.forms,
-            parent: config.parent
+            parent: config.parent,
+            children: config.children,
+            async: config.async
         })
         this.config = initConfig(BaseDataCollectionModelConfigDefaults, config)
-        this.collections = {}
+        this._collections = new Collections(this, this.config.collections)
     }
 
 
-    get state() {
-        if (this.config.async) {
-            return this.asyncState
-        }
-        return this.repos.main.state
+    get collections(){
+        return this._collections.collections
     }
 
-
-    loadCollections = async () => {
-
-        let collections = {}
-        if ((this.config.collections as modelClass).prototype instanceof BaseDataModel
-            || this.config.collections == BaseDataModel
-        ) {
-            collections = { main: { model: this.config.collections as modelClass, key: undefined }}
-        } else if (this.config.collections instanceof Object) {
-            collections = this.config.collections
-        }
-
-
-        let promises = []
-
-        for (const name of Object.keys(collections)) {
-            const child = collections[name]
-            const childClass = child.model as modelClass
-            let out = []
-
-            // if key is not defined iterate over the data
-            const iter = child.key ? this.data[child.key] : this.data
-            for (const d of iter) {
-                const c = new childClass({
-                    data: d,
-                    parent: this
-                })
-                out.push(c)
-
-
-                if(this.config.async) promises.push(c.load())
-            }
-            this.collections[name] = out
-        }
-        await Promise.all(promises)
+    get collection(){
+        return this.collections.main
     }
 
-    async load() {
+    map(args: (value: any, index: number, array: BaseDataModel[]) => unknown){
+        return this.collection.map(args)
+    }
+
+    load = async () => {
         this.asyncState = 'loading'
-        if(this.repos.main){
-            await this.repos.main.call()
+        if(this.repo){
+            await this.repo.call()
         }
-        await this.loadCollections()
+        await this._collections.load()
         this.asyncState = 'loaded'
+    }
+
+    get payload(): any{
+        return this.collection.map((child)=>child.payload)
+    }
+
+
+    add = () => {
+        /**
+         * BaseDataModel adds to parent
+         * BaseDataCollectionModel adds to collections.main
+         */
+        this.collection?.add(this.defaultData)
+    }
+
+    remove = () => { 
+        /**
+         * BaseDataModel removes from parent
+         * BaseDataCollectionModel removes from collections.main
+         */
+        this.collection?.remove(this)
     }
 }

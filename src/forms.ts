@@ -2,6 +2,9 @@ import * as _ from "lodash"
 import {classToClass} from 'class-transformer'
 import {validate, ValidationError} from 'class-validator'
 import { nestedKeys, initConfig } from "./helpers"
+import { observable } from "mobx"
+import { BaseModel } from "./base"
+import { BaseRepository } from "./repo"
 
 
 export const getErrors = async (v: any): Promise<{[key: string]: string}> => {
@@ -55,7 +58,7 @@ type keys_t = [key_t, key_t][]
 interface BaseFormModelConfig_i{
     validator?: new () => any
     data?: any
-
+    repo?: BaseRepository
     // first column represents the frontend datastructure, second column represents the payload data structure
     keys?: keys_t
 }
@@ -66,9 +69,12 @@ const BaseFormModelConfigDefaults = {
     keys: []
 } as BaseFormModelConfig_i
 
-export class BaseFormModel {
+export class BaseFormModel extends BaseModel{
 
-    data: any
+
+    @observable
+    _data: any
+    @observable
     state: 'valid'|'invalid'
 
 
@@ -76,14 +82,23 @@ export class BaseFormModel {
     errors: {[key: string] : string}
     private validator?: new () => any
     keys: keys_t
-    
+    repo?: BaseRepository
     constructor(config: BaseFormModelConfig_i){
+        super()
         this.config = initConfig(BaseFormModelConfigDefaults, config)
-        this.data = this.config.data
+        this._data = this.config.data
         this.validator = this.config.validator
         this.keys = this.config.keys
+        this.initRepo(config.repo)
     }
 
+    private initRepo(repo?: BaseRepository){
+        if(!repo) return
+        this.repo = repo
+        repo.onLoad.subscribe(()=>{
+            this.data = repo.data
+        })
+    }
 
     private get keyMap(){
         /**
@@ -156,6 +171,14 @@ export class BaseFormModel {
     }
 
 
+    set data(data: any){
+        this._data = data
+    }
+
+    get data(){
+        return this._data
+    }
+
 
     onChange = (key: string) => {
         /**
@@ -169,7 +192,10 @@ export class BaseFormModel {
         return (e: any) => {
             // e can be Event, string, number...
             let value = undefined
-            if(e.constructor.name === "Event") value = e.target.value
+
+            // TODO: there has to be a better way of doing this
+            if(e.target !== undefined) value = e.target.value
+            // if(e.constructor.name === "Event") value = e.target.value
             else value = e
             _.set(this.data, key, value)
             this.validateDebounce()

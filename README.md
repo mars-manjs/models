@@ -3,9 +3,13 @@
 ## tests
 ```
 # run full test suite
-jest 
+`jest`
 
-# run specific test
+# run specific test suite
+`jest forms.test.ts`
+
+# run specific test 
+`jest model.test.ts -t "async true"`
 ```
 
 # Form 
@@ -203,7 +207,7 @@ Format #3 {model: BaseDataModel, name: string, key: string}[]
 
 ### Config: repos
 Format #1
-```
+```ts
 {
     repos: BaseRepository
 }
@@ -212,7 +216,7 @@ if only one repository is defined, that repository will be the main repository
 ```
 
 Format #2
-```
+```ts
 {
     repos: [
         {
@@ -229,7 +233,7 @@ Format #2
 
 
 ### Config: forms
-```
+```ts
 {
     forms: [
         {
@@ -238,4 +242,192 @@ Format #2
         }
     ]
 }
+```
+
+
+# Examples
+
+
+## Basic Example
+### Data
+url : `api.example.com/data`
+```json
+{
+    "foo" : "bar",
+    "num" : 1234
+}
+```
+### Model
+```ts
+
+// model instantiation
+
+class ExampleDataModel extends BaseDataModel{
+    constructor(){
+        super({
+            repos: new APIRepository({path: "api.example.com/data"})
+        })
+    }
+}
+
+// usage
+
+const model = new ExampleDataModel()
+await model.load()
+model.foo // "bar"
+model.num // 1234
+```
+
+
+## Multiple Repos Example
+### Data
+url : `api.example.com/data`
+```json
+{
+    "foo" : "bar",
+    "num" : 1234
+}
+```
+### Model
+```ts
+
+// model instantiation
+
+class ExampleDataModel extends BaseDataModel{
+    constructor(){
+        super({
+            repos: {
+                main: new APIRepository({path: "api.example.com/data"}),
+                submit: new APIRepository({path: "api.example.com/data", method: "POST"}),
+            }
+        })
+    }
+}
+
+// usage
+
+const model = new ExampleDataModel()
+await model.load()
+
+model.repos.submit.call()
+
+```
+
+
+
+## Collections Example
+### Data
+```json
+{
+    "array" : [
+        1,
+        2,
+        3
+    ]
+}
+```
+### Model
+```ts
+class ExampleDataModel extends BaseDataCollection{
+    constructor(){
+        super({
+            repos: new APIRepository({path: "api.example.com/data"}),
+            collections: { key: 'array', model: ExampleDataItemModel }
+        })
+    }
+}
+
+class ExampleDataItemModel extends BaseDataModel{
+
+}
+
+const model = new ExampleDataModel()
+await model.load()
+
+model.collection 
+/**
+Collection([
+    ExampleDataItemModel(1),
+    ExampleDataItemModel(2),
+    ExampleDataItemModel(3)
+])
+ **/
+model.collections
+/**
+ Collections({
+     main: Collection([
+        ExampleDataItemModel(1),
+        ExampleDataItemModel(2),
+        ExampleDataItemModel(3)
+     ])
+ })
+ **/
+ 
+```
+
+## Multiple Collections
+### Data
+```json
+{
+    "array" : [
+        1,
+        2,
+        3
+    ],
+    "iterator": [
+        {
+            "foo": 123
+        },
+        {
+            "bar" : 456
+        }
+    ]
+}
+```
+
+```ts
+class ExampleDataModel extends BaseDataCollection{
+    constructor(){
+        super({
+            repos: {
+                main:   new APIRepository({path: "api.example.com/data"})
+            }
+            collections: {
+                main: { key: 'array', model: ExampleDataItemModel },
+                second: { key: 'iterator', model: ExampleDataItemModel },
+            }
+        })
+    }
+}
+
+class ExampleDataItemModel extends BaseDataModel{
+
+}
+
+const model = new ExampleDataModel()
+await model.load()
+
+model.collection 
+/**
+Collection([
+    ExampleDataItemModel(1),
+    ExampleDataItemModel(2),
+    ExampleDataItemModel(3)
+])
+ **/
+model.collections
+/**
+ Collections({
+     main: Collection([
+        ExampleDataItemModel(1),
+        ExampleDataItemModel(2),
+        ExampleDataItemModel(3)
+     ])
+     second: Collection([
+        ExampleDataItemModel({foo: 123}),
+        ExampleDataItemModel({bar: 123})
+     ])
+ })
+ **/
+ 
 ```

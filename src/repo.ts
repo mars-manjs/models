@@ -1,8 +1,10 @@
 import { state_t } from "./types"
-import _ = require("lodash")
+import * as _ from "lodash"
 import { initConfig } from "./helpers"
 import { NotImplementedError } from "./errors"
-
+import {observable} from 'mobx'
+import { BaseModel } from "./base"
+import { PubSub } from "./pubsub"
 
 interface BaseRepositoryConfig_i {
     data?: any
@@ -10,23 +12,45 @@ interface BaseRepositoryConfig_i {
 
 const BaseRepositoryConfigDefaults = {
 } as BaseRepositoryConfig_i
-export class BaseRepository {
+export class BaseRepository extends BaseModel{
     config: BaseRepositoryConfig_i
 
-    state: state_t = 'unloaded'
+
+    @observable
+    state: state_t
     response: any
     data: any
+    onLoad: PubSub<any>
+    onError: PubSub<any>
     constructor(config: BaseRepositoryConfig_i) {
+        super()
         this.config = initConfig(BaseRepositoryConfigDefaults, config)
         this.data = config.data
+        this.onLoad = new PubSub()
+        this.onError = new PubSub()
+        this.state = 'unloaded'
     }
+    // set state(state: state_t){
+    //     console.log("STATE IS BEING OVER WRITTEN", state)
+    //     this._state = state
+    // }
+    // get state(){
+    //     return this._state
+    // }
+
+    // onLoad = (subscriber: (value: any)=>void) => {
+    //     this.onLoadSub.subscribe(subscriber)
+    // }
+    // onError = (subscriber: (value: any)=>void) => {
+    //     this.onLoadSub.subscribe(subscriber)
+    // }
 
 
     preCall = async (): Promise<any> => {
         /**
          * sets state to loading or reloading
          */
-        this.state = this.state === 'loading' ? 'reloading' : 'loading'
+        this.state = this.state === 'loaded' ? 'reloading' : 'loading'
     }
 
     fetch = async (): Promise<any> => {
@@ -48,6 +72,8 @@ export class BaseRepository {
          * implement checking if call was successful 
          * 
          * sets state to 'loaded' or 'error'
+         * 
+         * emits to onLoadSub 
          */
         throw new NotImplementedError()
     }
@@ -98,9 +124,17 @@ export class APIRepository extends BaseRepository {
         this.config = initConfig(APIRepositoryConfigDefaults, config)
     }
 
+    get body(){
+        if(typeof this.config.body === "function"){
+            return JSON.stringify(this.config.body())
+        }
+        return JSON.stringify(this.config.body)
+    }
+
     get options(){
         return {
             method: this.config.method,
+            body: this.body,
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -108,7 +142,7 @@ export class APIRepository extends BaseRepository {
     }
 
     fetch = async () => {
-        console.log(this.config.path, this.options)
+        // console.log(this.config.path, this.options)
         this.response = await fetch(this.config.path, this.options)
     }
 
@@ -117,11 +151,24 @@ export class APIRepository extends BaseRepository {
     }
 
     postCall = async () => {
+        /**
+         * sets state upon success
+         */
         if (this.response.status >= 200 && this.response.status < 300) {
             this.state = 'loaded'
+            /**
+             * emits to LoadPubSub
+             */
+            this.onLoad.emit(this.data)
         }else{
             this.state = 'error'
+            /**
+             * emits to LoadPubSub
+             */
+            this.onError.emit(this.data)
         }
+
+
     }
 
     // call = () => {
@@ -137,10 +184,15 @@ interface MockRepositoryConfig_i{
     data: any
 }
 
+
+
+
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const MockRepositoryConfig = {
-    data: {
-        abc: 123
-    },
+    data: {},
 } as MockRepositoryConfig_i
 
 export class MockRepository extends BaseRepository{
@@ -149,16 +201,20 @@ export class MockRepository extends BaseRepository{
             data: config.data
         })
         this.config = initConfig(MockRepositoryConfig, config)
+        // console.log("CREATING MOCK REPOSITORY")
     }
 
     fetch = async () => {
+        await timeout(100)
         this.response = this.config
     }
     parse = async () => {
         this.data = this.response.data
     }
-
+    
     postCall = async () => {
         this.state = 'loaded'
+        // console.log("POSTCALL", this.state)
+        this.onLoad.emit(this.data)
     }
 }

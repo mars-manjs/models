@@ -1,4 +1,4 @@
-import { BaseFormModel } from '../src'
+import { BaseFormModel, MockRepository } from '../src'
 import { transform } from 'lodash'
 import { IsString, IsNotEmpty, IsDefined, ValidateNested, MaxLength, Max, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -92,4 +92,16 @@ test('form validator', async () => {
 
 test('test errors data structure', ()=>{
     
+})
+
+
+test('form repo load', async ()=>{
+    const data = {numbers: [1,2,3]}
+    const repo = new MockRepository({data})
+    const form = new BaseFormModel({repo: repo})
+    // console.log("preload data", data, form.data)
+    expect(form.data).toStrictEqual({})
+    await repo.call()
+    // console.log("postload data", form.data)
+    expect(form.data).toStrictEqual(data)
 })
