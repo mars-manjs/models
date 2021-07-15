@@ -107,7 +107,8 @@ export class Children {
             const iter = key ? _.get(data, key) : undefined
             const c = new childClass({
                 data: iter,
-                parent: this
+                parent: this.parent,
+                // childrenParent: this
             })
             if(this.parent.config.async) promises.push(c.load())
             this.children[name] = c
