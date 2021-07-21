@@ -180,22 +180,23 @@ export class APIRepository extends BaseRepository {
 
 
 
-interface MockRepositoryConfig_i{
-    data: any
-}
-
-
-
-
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+
+interface MockRepositoryConfig_i extends BaseRepositoryConfig_i{
+    data: any,
+    finalState?: state_t
+}
+
 const MockRepositoryConfig = {
     data: {},
+    finalState: 'loaded'
 } as MockRepositoryConfig_i
 
 export class MockRepository extends BaseRepository{
+    config: MockRepositoryConfig_i
     constructor(config: MockRepositoryConfig_i){
         super({
             data: config.data
@@ -213,7 +214,7 @@ export class MockRepository extends BaseRepository{
     }
     
     postCall = async () => {
-        this.state = 'loaded'
+        this.state = this.config.finalState
         // console.log("POSTCALL", this.state)
         this.onLoad.emit(this.data)
     }

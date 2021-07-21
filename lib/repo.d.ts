@@ -53,10 +53,12 @@ export declare class APIRepository extends BaseRepository {
     parse: () => Promise<void>;
     postCall: () => Promise<void>;
 }
-interface MockRepositoryConfig_i {
+interface MockRepositoryConfig_i extends BaseRepositoryConfig_i {
     data: any;
+    finalState?: state_t;
 }
 export declare class MockRepository extends BaseRepository {
+    config: MockRepositoryConfig_i;
     constructor(config: MockRepositoryConfig_i);
     fetch: () => Promise<void>;
     parse: () => Promise<void>;
