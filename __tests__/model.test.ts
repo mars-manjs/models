@@ -134,6 +134,16 @@ describe('repos tests', ()=>{
     test('test multiple repos', ()=>{
 
     })
+
+    test('model should be in error state', async ()=>{
+        const model = new BaseDataModel({
+            repos: new MockRepository({data: undefined, finalState: 'error'})
+        })
+
+        await model.load()
+
+        expect(model.state).toBe('error')
+    })
 })
 
 

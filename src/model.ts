@@ -132,7 +132,7 @@ export class BaseDataModel extends BaseModel{
         }
         await this._children.load()
         await this.postLoad()
-        this.asyncState = 'loaded'
+        this.asyncState = this.repo ? this.repo.state : 'loaded'
     }
 
     get state() {
