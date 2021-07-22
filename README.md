@@ -1,7 +1,25 @@
-# Data Model / Form / Repository Pattern
+![BAI Logo](./imgs/logo.png)
 
-## tests
-```
+# Description
+Data Model / Form / Repository Pattern
+
+# Table of Contents
+1. [Design Overview](#design-overview)
+2. [Installation](#installation)
+3. [API Documentation](<#API Documentation>)
+3. [Examples](<#Examples>)
+
+# Development
+## System Requirements
+- Dependencies: 
+    - node: >14.15
+    - npm:  >6.14
+## Commands
+```bash
+# installation
+npm i 
+
+# tests
 # run full test suite
 `jest`
 
@@ -10,6 +28,20 @@
 
 # run specific test 
 `jest model.test.ts -t "async true"`
+
+# build
+npm run build
+
+# publish
+npm publish
+```
+
+
+# API Documentation
+...
+## tests
+```
+
 ```
 
 # Form 

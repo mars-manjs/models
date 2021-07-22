@@ -120,11 +120,9 @@ describe('object references should be kept the same', ()=>{
     test('repo reference', async ()=>{
         const repo = new MockRepository({data: [{abc: 123}, {abc: 456}]})
         const model = new BaseDataCollectionModel({collections: ChildDataModel, repos: repo, async: true}) 
-        let eq = repo === model.repo 
-        expect(eq).toBe(true)
+        expect(repo === model.repo ).toBeTruthy()
         await model.load()
-        eq = repo === model.repo 
-        expect(eq).toBe(true)
+        expect(repo === model.repo ).toBeTruthy()
     })
 })
 
