@@ -27,12 +27,12 @@ export const initConfig = (defaultConfig, config) => {
 }
 
 
-export const format = <T>(d: Base|T) => {
+export const format = <T extends main_i<any>>(d: Base|T) => {
     if (d === undefined) return {} as T
     if (d instanceof Base) {
         return { main: d } as T
     } else {
-        return d as T
+        return d
     }
 }
 

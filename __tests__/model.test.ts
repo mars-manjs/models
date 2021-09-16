@@ -73,7 +73,7 @@ describe('BaseModelCollection', ()=>{
     })
 
     test('collection with data prop', async ()=>{
-        const model = new CollectionModel<{abc: number}>({collections: Model, data: [{abc: 123}, {abc: 123}]}) 
+        const model = new CollectionModel({collections: Model, data: [{abc: 123}, {abc: 123}]}) 
         await model.load()
         expect(model.collection.length).toBe(2)
     })

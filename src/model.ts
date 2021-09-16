@@ -1,46 +1,37 @@
-import { BaseRepo } from "./repo"
-import { state_t, repoMainMap_i, formMainMap_i, map_i, repoMap_i, repoConfig, formConfig, main_i } from "./types"
 import * as _ from 'lodash'
+
+import { BaseRepo } from "./repo"
+import { state_t, repoMainMap_i, formMainMap_i, repoConfig, formConfig } from "./types"
 import { initConfig, Repos } from "./helpers"
 import { FormModel } from "./forms"
 import { observable } from "mobx"
-import { Forms, Children, Collections, Collection, format } from "."
+import { Children, Collections, Collection, format } from "."
 import { Base } from "./base"
 
 
 
-type modelClass = new (...args: any[]) => Model<any>;
+type modelClass = new (...args: any[]) => Model;
 
 interface child_i { key: string, model: modelClass }
 
-interface ModelConfig_i<DataT>{
+interface ModelConfig_i{
     data?: any
     repos?: repoConfig
     forms?: formConfig
     async?: boolean
     children?: modelClass | {[key: string]: child_i }
-    parent?: Model<DataT>
+    parent?: Model
     parentCollection?: Collection
     // _collection?: Model[]
 }
 
 const ModelConfigDefaults = {
     async: true
-} as ModelConfig_i<any>
+} as ModelConfig_i
 
 
 
-interface configRepo_i{
-    [key: string]: BaseRepo
-    main: BaseRepo
-}
-
-interface configForm_i{
-    [key: string]: FormModel
-    main: FormModel
-}
-
-export class Model<DataT = any, RepoT extends configRepo_i = {main: BaseRepo}, FormT extends configForm_i = {main: FormModel}> extends Base{
+export class Model extends Base{
     /**
      * Model implements the base functionality of BaseDataItemModel and CollectionModel
      */
@@ -48,23 +39,23 @@ export class Model<DataT = any, RepoT extends configRepo_i = {main: BaseRepo}, F
 
     @observable
     asyncState: state_t
-    config: ModelConfig_i<DataT>
-    _repos: RepoT
-    _forms: FormT
+    config: ModelConfig_i
+    _repos: repoMainMap_i
+    _forms: formMainMap_i
     _children: Children
     @observable
     _data: any
-    parent?: Model<any>
+    parent?: Model
     parentCollection?: Collection
-    constructor(config: ModelConfig_i<DataT>) {
+    constructor(config: ModelConfig_i) {
         super()
         this.config = initConfig(ModelConfigDefaults, config)
 
         this._data = config.data
         this.asyncState = 'unloaded'
 
-        this._repos = format<RepoT>(this.config.repos)
-        this._forms = format<FormT>(this.config.forms)
+        this._repos = format<repoMainMap_i>(this.config.repos)
+        this._forms = format<formMainMap_i>(this.config.forms)
 
         if(this.config.parent) this.parent = this.config.parent
         if(this.config.parentCollection) this.parentCollection = this.config.parentCollection
@@ -76,27 +67,26 @@ export class Model<DataT = any, RepoT extends configRepo_i = {main: BaseRepo}, F
     get repo(){
         return this.repos['main']
     }
-    get repos(): RepoT{
+    get repos(): repoMainMap_i{
         return this._repos
     }
     set repo(repo: BaseRepo){
         this._repos = {main: repo}
-        this._repos['main'] = repo
     }
-    set repos(repos: RepoT){
+    set repos(repos: repoMainMap_i){
         // throw error if repos is already defined ?
         // this._repos = new Repos(repos)
         this._repos = repos
     }
 
 
-    get form(): FormModel|undefined{
+    get form(): FormModel{
         /**
          * get main form
          */
-        return this.forms['main']
+        return this.forms.main
     }
-    get forms(): FormT{
+    get forms(): formMainMap_i{
         /**
          * get object of forms
          */
@@ -106,10 +96,9 @@ export class Model<DataT = any, RepoT extends configRepo_i = {main: BaseRepo}, F
         /**
          * set forms
          */
-        // this._forms = {main: form}
-        this._forms['main'] = form
+        this._forms = {main: form}
     }
-    set forms(forms: FormT){
+    set forms(forms: formMainMap_i){
         // throw error if repos is already defined ?
         this._forms = forms
     }
@@ -178,7 +167,7 @@ export class Model<DataT = any, RepoT extends configRepo_i = {main: BaseRepo}, F
         return this._children.children
     }
 
-    get child(): Model<any>{
+    get child(): Model{
         return this.children.main
     }
 
@@ -210,17 +199,16 @@ export class Model<DataT = any, RepoT extends configRepo_i = {main: BaseRepo}, F
     }
 }
 
-interface CollectionModelConfig_i<DataT> extends ModelConfig_i<DataT> {
+interface CollectionModelConfig_i extends ModelConfig_i {
     collections?: modelClass | {[key: string]: child_i }
-    data?: DataT[]
 }
 
 const CollectionModelConfigDefaults = {
     ...ModelConfigDefaults,
     collections: Model
-} as CollectionModelConfig_i<any>
+} as CollectionModelConfig_i
 
-export class CollectionModel<DataT = any> extends Model<DataT> {
+export class CollectionModel extends Model {
     /**
      * CollectionModel is for an array of Model (Item or Collection) 
      * 
@@ -231,12 +219,12 @@ export class CollectionModel<DataT = any> extends Model<DataT> {
      * - how to set the state of loaded only after having iterated through children
      * - async / sync collection
      */
-    declare config: CollectionModelConfig_i<DataT>
+    declare config: CollectionModelConfig_i
 
     _collections: Collections
  
     // children: DynamicClass
-    constructor(config: CollectionModelConfig_i<DataT>) {
+    constructor(config: CollectionModelConfig_i) {
         super({
             data: config.data,
             repos: config.repos,
@@ -258,7 +246,7 @@ export class CollectionModel<DataT = any> extends Model<DataT> {
         return this.collections.main
     }
 
-    map(args: (value: any, index: number, array: Model<DataT>[]) => unknown){
+    map(args: (value: any, index: number, array: Model[]) => unknown){
         return this.collection.map(args)
     }
 
