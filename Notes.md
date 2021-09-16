@@ -1,5 +1,102 @@
-# Meeting July 6th 2021 with Said
+# Meeting September 13th 2021 with Waleed
+## onChange
+```jsx
+<input onChange={form.onChange("name")}>
+```
 
+## @mars-man/components
+```jsx
+<Form form={form}>
+    <Input id="name"/>
+</Form>
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Collections
+```ts
+
+class MobxStore{
+    constructor(){
+        this.workspaces = new WorkspacesModel()
+        this.workspaces.load()
+    }
+}
+
+
+
+class WorkspacesModel extends CollectionModel{
+    constructor(){
+        super({
+            repos: {
+                main: new APIRepo({path: "/api/workspaces"}),
+                delete: new APIRepo({path: "/api/workspaces", method: 'DELETE'}),
+            },
+            collections: WorkspaceModel
+        })
+    }
+}
+
+
+class WorkspaceModel extends Model{
+    constructor(){
+        super()
+        this.repos = {
+            main: new APIRepo({path: '/load'})
+            update: new APIRepo({path: '/update', payload: this.payload, method: 'POST'})
+        }
+    }
+}
+```
+
+## Children
+- children that don't use any of the data of the parent
+    - need to be implemented
+    - AgoraCloud: workspace doesn't have any mention of deployments
+
+## PubSub
+
+
+
+```ts
+const workspace = new WorkspaceModel()
+
+
+// somewhere else in the code
+
+workspace.onLoad.subscribe(()=>{
+    alert("Workspace Loaded!")
+})
+```
+
+
+
+# Meeting July 6th 2021 with Said
+- autoload? you need to call `model.load()`, should we provide an autoload
 
 ## Questions
 ### Q1
@@ -11,7 +108,7 @@ model.foo
 // should we just do this?
 model.data.foo
 // or make the user specify get functions 
-class ExampleDataModel extends BaseDataModel{
+class ExampleDataModel extends Model{
     ...
     get foo(){
 
@@ -23,30 +120,30 @@ class ExampleDataModel extends BaseDataModel{
 ```ts
 // should we define things in the super call?
 // it limits the ability to pass references of repos -> forms, forms -> repos...
-class ExampleDataModel extends BaseDataModel{
+class ExampleDataModel extends Model{
     constructor(){
         super({
-            repos: new APIRepository({path: "api.example.com/data"}),
-            forms: new BaseFormModel({data: "... how do we get data from repository? ... no way to reference this.repo ..."}),
+            repos: new APIRepo({path: "api.example.com/data"}),
+            forms: new FormModel({data: "... how do we get data from repository? ... no way to reference this.repo ..."}),
             async: true
         })
     }
 }
 
 // ALTERNATIVE
-class ExampleDataModel extends BaseDataModel{
+class ExampleDataModel extends Model{
     constructor(){
         super({
             async: true
         })
-        this.repo = new APIRepository({path: "api.example.com/data"}) 
-        this.submit = new APIRepository({path: "api.example.com/data", method: "POST"})
+        this.repo = new APIRepo({path: "api.example.com/data"}) 
+        this.submit = new APIRepo({path: "api.example.com/data", method: "POST"})
         this.repos = {
             submit: this.submit
         }
 
 
-        this.form = new BaseFormModel({
+        this.form = new FormModel({
             data: this.repo.get(["cpuCount", "ram"])
         })
 
@@ -78,7 +175,4 @@ model.collections
  **/
 
 model.collections.map()
-
 ```
-
-## 

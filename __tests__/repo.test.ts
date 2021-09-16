@@ -1,4 +1,4 @@
-import { APIRepository } from "../src"
+import { APIRepo } from "../src"
 // require('jest-fetch-mock').enableMocks()
 import fetchMock from 'jest-fetch-mock';
 fetchMock.enableMocks()
@@ -13,7 +13,7 @@ test('successful repo call', async ()=>{
 
     fetchMock.mockResponse(JSON.stringify({test: 123}))
 
-    const repo = new APIRepository({path: "/"})
+    const repo = new APIRepo({path: "/"})
     expect(repo.state).toBe('unloaded')
     repo.call().then(()=>{
         // after call is finished
@@ -29,7 +29,7 @@ test('successful repo call', async ()=>{
 test('failed repo call', async () => {
     fetchMock.mockResponse(JSON.stringify({test: 123}), {status: 500})
 
-    const repo = new APIRepository({path: "/"})
+    const repo = new APIRepo({path: "/"})
     expect(repo.state).toBe('unloaded')
     repo.call().then(()=>{
         // after call is finished
@@ -49,7 +49,7 @@ test('payload function', async ()=>{
             data: 123
         }
     }
-    const repo = new APIRepository({path: "/", body: payload, method: 'POST'})
+    const repo = new APIRepo({path: "/", body: payload, method: 'POST'})
     expect(repo.body).toBe(JSON.stringify(payload()))
     await repo.call()
 })

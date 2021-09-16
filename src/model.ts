@@ -1,58 +1,70 @@
-import { BaseRepository } from "./repo"
+import { BaseRepo } from "./repo"
 import { state_t, repoMainMap_i, formMainMap_i, map_i, repoMap_i, repoConfig, formConfig, main_i } from "./types"
 import * as _ from 'lodash'
 import { initConfig, Repos } from "./helpers"
-import { BaseFormModel } from "./forms"
+import { FormModel } from "./forms"
 import { observable } from "mobx"
 import { Forms, Children, Collections, Collection, format } from "."
-import { BaseModel } from "./base"
+import { Base } from "./base"
 
 
 
-type modelClass = new (...args: any[]) => BaseDataModel;
+type modelClass = new (...args: any[]) => Model<any>;
 
 interface child_i { key: string, model: modelClass }
 
-interface BaseDataModelConfig_i {
+interface ModelConfig_i<DataT>{
     data?: any
     repos?: repoConfig
     forms?: formConfig
     async?: boolean
     children?: modelClass | {[key: string]: child_i }
-    parent?: BaseDataModel
+    parent?: Model<DataT>
     parentCollection?: Collection
-    // _collection?: BaseDataModel[]
+    // _collection?: Model[]
 }
 
-const BaseDataModelConfigDefaults = {
+const ModelConfigDefaults = {
     async: true
-} as BaseDataModelConfig_i
+} as ModelConfig_i<any>
 
-export class BaseDataModel extends BaseModel{
+
+
+interface configRepo_i{
+    [key: string]: BaseRepo
+    main: BaseRepo
+}
+
+interface configForm_i{
+    [key: string]: FormModel
+    main: FormModel
+}
+
+export class Model<DataT = any, RepoT extends configRepo_i = {main: BaseRepo}, FormT extends configForm_i = {main: FormModel}> extends Base{
     /**
-     * BaseDataModel implements the base functionality of BaseDataItemModel and BaseDataCollectionModel
+     * Model implements the base functionality of BaseDataItemModel and CollectionModel
      */
 
 
     @observable
     asyncState: state_t
-    config: BaseDataCollectionModelConfig_i
-    _repos: repoMainMap_i
-    _forms: formMainMap_i
+    config: ModelConfig_i<DataT>
+    _repos: RepoT
+    _forms: FormT
     _children: Children
     @observable
     _data: any
-    parent?: BaseDataModel
+    parent?: Model<any>
     parentCollection?: Collection
-    constructor(config: BaseDataModelConfig_i) {
+    constructor(config: ModelConfig_i<DataT>) {
         super()
-        this.config = initConfig(BaseDataModelConfigDefaults, config)
+        this.config = initConfig(ModelConfigDefaults, config)
 
         this._data = config.data
         this.asyncState = 'unloaded'
 
-        this._repos = format<repoMainMap_i>(this.config.repos)
-        this._forms = format<formMainMap_i>(this.config.forms)
+        this._repos = format<RepoT>(this.config.repos)
+        this._forms = format<FormT>(this.config.forms)
 
         if(this.config.parent) this.parent = this.config.parent
         if(this.config.parentCollection) this.parentCollection = this.config.parentCollection
@@ -61,43 +73,43 @@ export class BaseDataModel extends BaseModel{
 
     }
 
-            // loadInit: config.loadInit
     get repo(){
-        return this.repos.main
+        return this.repos['main']
     }
-    get repos(): repoMainMap_i{
+    get repos(): RepoT{
         return this._repos
     }
-    set repo(repo: BaseRepository){
-        // this._repos = new Repos({main: repo})
+    set repo(repo: BaseRepo){
         this._repos = {main: repo}
+        this._repos['main'] = repo
     }
-    set repos(repos: repoMainMap_i){
+    set repos(repos: RepoT){
         // throw error if repos is already defined ?
         // this._repos = new Repos(repos)
         this._repos = repos
     }
 
 
-    get form(){
+    get form(): FormModel|undefined{
         /**
          * get main form
          */
-        return this.forms.main
+        return this.forms['main']
     }
-    get forms(){
+    get forms(): FormT{
         /**
          * get object of forms
          */
         return this._forms
     }
-    set form(form: BaseFormModel){
+    set form(form: FormModel){
         /**
          * set forms
          */
-        this._forms = {main: form}
+        // this._forms = {main: form}
+        this._forms['main'] = form
     }
-    set forms(forms: formMainMap_i){
+    set forms(forms: FormT){
         // throw error if repos is already defined ?
         this._forms = forms
     }
@@ -139,8 +151,8 @@ export class BaseDataModel extends BaseModel{
         if (this.config.async) {
             return this.asyncState
         }
-        if(this.repos.main){
-            return this.repos.main.state
+        if(this.repo){
+            return this.repo.state
         }
         return 'loaded'
     }
@@ -166,7 +178,7 @@ export class BaseDataModel extends BaseModel{
         return this._children.children
     }
 
-    get child(): BaseDataModel{
+    get child(): Model<any>{
         return this.children.main
     }
 
@@ -176,39 +188,41 @@ export class BaseDataModel extends BaseModel{
         /**
          * returns the default data to instantiate a new item in the collection
          * 
-         * TODO: should this be an option in the BaseDataModelConfig  
+         * TODO: should this be an option in the ModelConfig  
          */
         return undefined
     }
 
     add = () => {
         /**
-         * BaseDataModel adds to parent
-         * BaseDataCollectionModel adds to collections.main
+         * Model adds to parent
+         * CollectionModel adds to collections.main
          */
         this.parentCollection?.add(this.defaultData)
     }
 
     remove = () => { 
         /**
-         * BaseDataModel removes from parent
-         * BaseDataCollectionModel removes from collections.main
+         * Model removes from parent
+         * CollectionModel removes from collections.main
          */
         this.parentCollection?.remove(this)
     }
 }
 
-interface BaseDataCollectionModelConfig_i extends BaseDataModelConfig_i {
+interface CollectionModelConfig_i<DataT> extends ModelConfig_i<DataT> {
     collections?: modelClass | {[key: string]: child_i }
+    data?: DataT[]
 }
 
-const BaseDataCollectionModelConfigDefaults = {
-    ...BaseDataModelConfigDefaults
-} as BaseDataCollectionModelConfig_i
+const CollectionModelConfigDefaults = {
+    ...ModelConfigDefaults,
+    collections: Model
+} as CollectionModelConfig_i<any>
 
-export class BaseDataCollectionModel extends BaseDataModel {
+export class CollectionModel<DataT = any> extends Model<DataT> {
     /**
-     * BaseDataCollectionModel is for an array of BaseDataModel (Item or Collection) 
+     * CollectionModel is for an array of Model (Item or Collection) 
      * 
      * i.e. WikiSections, WikiPages
      * 
@@ -217,12 +231,12 @@ export class BaseDataCollectionModel extends BaseDataModel {
      * - how to set the state of loaded only after having iterated through children
      * - async / sync collection
      */
-    config: BaseDataCollectionModelConfig_i
+    declare config: CollectionModelConfig_i<DataT>
 
     _collections: Collections
  
     // children: DynamicClass
-    constructor(config: BaseDataCollectionModelConfig_i) {
+    constructor(config: CollectionModelConfig_i<DataT>) {
         super({
             data: config.data,
             repos: config.repos,
@@ -231,7 +245,7 @@ export class BaseDataCollectionModel extends BaseDataModel {
             children: config.children,
             async: config.async
         })
-        this.config = initConfig(BaseDataCollectionModelConfigDefaults, config)
+        this.config = initConfig(CollectionModelConfigDefaults, config)
         this._collections = new Collections(this, this.config.collections)
     }
 
@@ -244,7 +258,7 @@ export class BaseDataCollectionModel extends BaseDataModel {
         return this.collections.main
     }
 
-    map(args: (value: any, index: number, array: BaseDataModel[]) => unknown){
+    map(args: (value: any, index: number, array: Model<DataT>[]) => unknown){
         return this.collection.map(args)
     }
 
@@ -264,16 +278,16 @@ export class BaseDataCollectionModel extends BaseDataModel {
 
     add = () => {
         /**
-         * BaseDataModel adds to parent
-         * BaseDataCollectionModel adds to collections.main
+         * Model adds to parent
+         * CollectionModel adds to collections.main
          */
         this.collection?.add(this.defaultData)
     }
 
     remove = () => { 
         /**
-         * BaseDataModel removes from parent
-         * BaseDataCollectionModel removes from collections.main
+         * Model removes from parent
+         * CollectionModel removes from collections.main
          */
         this.collection?.remove(this)
     }

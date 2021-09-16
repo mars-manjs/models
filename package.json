@@ -40,7 +40,8 @@
     ],
     "transform": {
       "^.+\\.(ts|tsx)$": "ts-jest"
-    }
+    },
+    "rootDir" : "__tests__"
   },
   "repository": {
     "type": "git",

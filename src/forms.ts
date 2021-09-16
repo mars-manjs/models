@@ -3,8 +3,8 @@ import {classToClass} from 'class-transformer'
 import {validate, ValidationError} from 'class-validator'
 import { nestedKeys, initConfig } from "./helpers"
 import { observable } from "mobx"
-import { BaseModel } from "./base"
-import { BaseRepository } from "./repo"
+import { Base } from "./base"
+import { BaseRepo } from "./repo"
 
 
 export const getErrors = async (v: any): Promise<{[key: string]: string}> => {
@@ -55,21 +55,21 @@ interface key_i{
 
 type key_t = string|key_i
 type keys_t = [key_t, key_t][]
-interface BaseFormModelConfig_i{
+interface FormModelConfig_i{
     validator?: new () => any
     data?: any
-    repo?: BaseRepository
-    // first column represents the frontend datastructure, second column represents the payload data structure
+    repo?: BaseRepo
+    // first column represents the frontend datastructure, second column represents the backend data structure
     keys?: keys_t
 }
 
-const BaseFormModelConfigDefaults = {
+const FormModelConfigDefaults = {
     validator: undefined,
     data: {},
     keys: []
-} as BaseFormModelConfig_i
+} as FormModelConfig_i
 
-export class BaseFormModel extends BaseModel{
+export class FormModel extends Base{
 
 
     @observable
@@ -78,21 +78,22 @@ export class BaseFormModel extends BaseModel{
     state: 'valid'|'invalid'
 
 
-    config: BaseFormModelConfig_i
+    config: FormModelConfig_i
     errors: {[key: string] : string}
     private validator?: new () => any
     keys: keys_t
-    repo?: BaseRepository
-    constructor(config: BaseFormModelConfig_i){
+    repo?: BaseRepo
+    constructor(config: FormModelConfig_i){
         super()
-        this.config = initConfig(BaseFormModelConfigDefaults, config)
-        this._data = this.config.data
-        this.validator = this.config.validator
+        this.config = initConfig(FormModelConfigDefaults, config)
         this.keys = this.config.keys
+        this.validator = this.config.validator
+        // data initialized last as it calls convert
+        this.data = this.config.data
         this.initRepo(config.repo)
     }
 
-    private initRepo(repo?: BaseRepository){
+    private initRepo(repo?: BaseRepo){
         if(!repo) return
         this.repo = repo
         repo.onLoad.subscribe(()=>{
@@ -102,7 +103,7 @@ export class BaseFormModel extends BaseModel{
 
     private get keyMap(){
         /**
-         * map of form data keys to payload data keys
+         * map of form data keys to backend data keys
          */
 
         // this insures that keys not specified in config.keys is included
@@ -137,7 +138,7 @@ export class BaseFormModel extends BaseModel{
         /**
          * to map in coming data
          * 
-         * form data structure -> payload data structure
+         * backend keys -> form keys
          */
         return _.invert(this.keyMap)
     }
@@ -146,7 +147,7 @@ export class BaseFormModel extends BaseModel{
         /**
          * to map out going data
          * 
-         * payload data structure -> form data structure
+         * form keys -> backend keys
          */
         return this.keyMap
     }
@@ -168,15 +169,6 @@ export class BaseFormModel extends BaseModel{
             if(typeof k === 'object' && k.cast !== undefined) out[k.key] = k.cast
         })
         return out 
-    }
-
-
-    set data(data: any){
-        this._data = data
-    }
-
-    get data(){
-        return this._data
     }
 
 
@@ -210,6 +202,17 @@ export class BaseFormModel extends BaseModel{
          * i.e. "user.name", "resources.cpu.percent"
          */
         return _.get(this.data, key)
+    }
+
+
+
+    
+    set data(data: any){
+        this._data = this.convert(data, this.inMap, this.inCast)
+    }
+
+    get data(){
+        return this._data
     }
 
     get payload(){

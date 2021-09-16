@@ -1,4 +1,4 @@
-export class BaseModel{
+export class Base{
 
 }
 
@@ -19,5 +19,5 @@ export class BaseModel{
 // }
 
 // export class Forms extends MapBase{
-//     main: BaseFormModel
+//     main: FormModel
 // }

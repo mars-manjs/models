@@ -1,9 +1,9 @@
 import * as _ from "lodash"
 import * as _fp from "lodash/fp"
-import { BaseRepository, repoMainMap_i, BaseFormModel } from ".";
+import { BaseRepo, repoMainMap_i, FormModel } from ".";
 import { map_i, formMainMap_i, modelClass, child_i, main_i } from "./types";
-import { BaseModel } from "./base";
-import { BaseDataModel } from "./model";
+import { Base } from "./base";
+import { Model } from "./model";
 import { observable } from "mobx";
 // lodash fp provides immutable methods
 // _.merge needs to not change the objects
@@ -27,12 +27,12 @@ export const initConfig = (defaultConfig, config) => {
 }
 
 
-export const format = <T extends main_i<any>>(d: BaseModel|T) => {
+export const format = <T>(d: Base|T) => {
     if (d === undefined) return {} as T
-    if (d instanceof BaseModel) {
+    if (d instanceof Base) {
         return { main: d } as T
     } else {
-        return d
+        return d as T
     }
 }
 
@@ -40,7 +40,7 @@ export class MapClass<T, CLSObj extends main_i<T>>{
     private _data: CLSObj
     constructor(d?: T | CLSObj) {
         if (d === undefined) return
-        if (d instanceof BaseModel) {
+        if (d instanceof Base) {
             this._data = { main: d } as CLSObj
         } else {
             this._data = d as CLSObj
@@ -59,15 +59,15 @@ export class MapClass<T, CLSObj extends main_i<T>>{
 
 
 
-export class Forms extends MapClass<BaseFormModel, formMainMap_i>{
-    constructor(d: BaseFormModel | formMainMap_i) {
+export class Forms extends MapClass<FormModel, formMainMap_i>{
+    constructor(d: FormModel | formMainMap_i) {
         super(d);
     }
 }
 
 
-export class Repos extends MapClass<BaseRepository, repoMainMap_i>{
-    constructor(d: BaseRepository | repoMainMap_i) {
+export class Repos extends MapClass<BaseRepo, repoMainMap_i>{
+    constructor(d: BaseRepo | repoMainMap_i) {
         super(d);
     }
 }
@@ -76,16 +76,16 @@ export class Repos extends MapClass<BaseRepository, repoMainMap_i>{
 
 export class Children {
     childrenConfig: { [key: string]: child_i } = {}
-    children: { [key: string]: BaseDataModel } = {}
-    constructor(public parent: BaseDataModel, collections: modelClass | { [key: string]: child_i }) {
+    children: { [key: string]: Model } = {}
+    constructor(public parent: Model, collections: modelClass | { [key: string]: child_i }) {
         this.childrenConfig = this.format(collections)
     }
 
     format = (collections): { [key: string]: child_i } => {
         let out = {}
         if (collections === undefined) return out
-        if ((collections as modelClass)?.prototype instanceof BaseDataModel
-            || collections == BaseDataModel
+        if ((collections as modelClass)?.prototype instanceof Model
+            || collections == Model
         ) {
             out = { main: { model: collections as modelClass, key: undefined } }
         } else if (collections instanceof Object) {
@@ -120,14 +120,14 @@ export class Children {
 export class Collections {
     collectionsConfig: { [key: string]: child_i } = {}
     collections: { [key: string]: Collection } = {}
-    constructor(public model: BaseDataModel, collections: modelClass | { [key: string]: child_i }) {
+    constructor(public model: Model, collections: modelClass | { [key: string]: child_i }) {
         this.collectionsConfig = this.format(collections)
     }
     format = (collections): { [key: string]: child_i } => {
         let out = {}
         if (collections === undefined) return out
-        if ((collections as modelClass)?.prototype instanceof BaseDataModel
-            || collections == BaseDataModel
+        if ((collections as modelClass)?.prototype instanceof Model
+            || collections == Model
         ) {
             out = { main: { model: collections as modelClass, key: undefined } }
         } else if (collections instanceof Object) {
@@ -154,12 +154,12 @@ export class Collections {
 
 export class Collection {
     @observable
-    models: BaseDataModel[] = []
-    constructor(private parent: BaseDataModel, private data: any, private modelObject: child_i) {
+    models: Model[] = []
+    constructor(private parent: Model, private data: any, private modelObject: child_i) {
         this.models = []
     }
     
-    map = (args: (value: any, index: number, array: BaseDataModel[]) => unknown) => {
+    map = (args: (value: any, index: number, array: Model[]) => unknown) => {
         return this.models.map(args)
     }
     *[Symbol.iterator](){
@@ -175,7 +175,7 @@ export class Collection {
         await this.initModel(data)
     }
 
-    remove = (model: BaseDataModel) => {
+    remove = (model: Model) => {
         this.models = _.filter(this.models, (item)=>{
             return item !== model
         })

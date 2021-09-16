@@ -1,19 +1,19 @@
-import { BaseFormModel, MockRepository } from '../src'
+import { FormModel, MockRepo } from '../src'
 import { transform } from 'lodash'
 import { IsString, IsNotEmpty, IsDefined, ValidateNested, MaxLength, Max, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 import "reflect-metadata";
 
 
-class GreetingsValidator{
+class GreetingsValidator {
     @IsNumber()
-    hello: string
+    hello: number
 }
 
-class Validator{
+class Validator {
     @Max(500)
     world: number;
-  
+
     @IsDefined()
     @ValidateNested()
     @Type(() => GreetingsValidator)
@@ -21,11 +21,13 @@ class Validator{
 }
 
 
-const form = new BaseFormModel({
+const form = new FormModel({
     validator: Validator,
     data: {
         name: "John Smith",
-        hello: 123,
+        greetings: {
+            hello: 123,
+        },
         world: "456"
     },
     keys: [
@@ -50,7 +52,7 @@ test('form configurations', () => {
 
 test('form keyMaps', () => {
     expect(form['inMap']).toStrictEqual({ 'greetings.hello': 'hello', world: 'world' })
-    expect(form['outMap']).toStrictEqual({  hello: 'greetings.hello', world: 'world' })
+    expect(form['outMap']).toStrictEqual({ hello: 'greetings.hello', world: 'world' })
 })
 
 test('form cast map', () => {
@@ -64,15 +66,15 @@ test('form convert', () => {
     // console.log(form.inMap, form.data)
     // console.log(form.convert({name: "John Smith", greetings: {hello: "123"}, world: 456}, form.inMap, form['inCast']))
     expect(form.convert(form.data, form['outMap'], form['outCast'])).toStrictEqual({ name: "John Smith", greetings: { hello: 123 }, world: 456 })
-    expect(form.convert({name: "John Smith", greetings: {hello: "123"}, world: 456}, form['inMap'], form['inCast'])).toStrictEqual({name: "John Smith", hello: "123", world: 456})
+    expect(form.convert({ name: "John Smith", greetings: { hello: "123" }, world: 456 }, form['inMap'], form['inCast'])).toStrictEqual({ name: "John Smith", hello: "123", world: 456 })
 })
 
 
 test('form validator', async () => {
     await form.validate()
     // console.log(await form.validate())
-    console.log(form.state)
-    console.log(form.errors)
+    // console.log(form.state)
+    // console.log(form.errors)
 
     // test state
     expect(form.state).toBe('valid')
@@ -90,18 +92,50 @@ test('form validator', async () => {
     expect(form.isValid).toBeFalsy()
 })
 
-test('test errors data structure', ()=>{
-    
+test('test errors data structure', () => {
+
 })
 
 
-test('form repo load', async ()=>{
-    const data = {numbers: [1,2,3]}
-    const repo = new MockRepository({data})
-    const form = new BaseFormModel({repo: repo})
-    // console.log("preload data", data, form.data)
-    expect(form.data).toStrictEqual({})
-    await repo.call()
-    // console.log("postload data", form.data)
-    expect(form.data).toStrictEqual(data)
+
+describe('form repo loading', () => {
+    test('form repo load', async () => {
+        const data = { numbers: [1, 2, 3] }
+        const repo = new MockRepo({ data })
+        const form = new FormModel({ repo })
+        // console.log("preload data", data, form.data)
+        expect(form.data).toStrictEqual({})
+        await repo.call()
+        // console.log("postload data", form.data)
+        expect(form.data).toStrictEqual(data)
+    })
+
+    test('form repo load with convesions', async () => {
+        const data = {
+            info: {
+                name: "Hello"
+            },
+            number: 123
+        }
+
+        const repo = new MockRepo({ data })
+        const form = new FormModel({
+            repo, 
+            keys: [
+                ["name", "info.name"],
+                [{key: "number", cast: String}, {key: "number", cast: Number}]
+            ] 
+        })
+        // console.log("preload data", data, form.data)
+        expect(form.data).toStrictEqual({})
+        await repo.call()
+        // console.log("data", form.data, form.payload, form.data.name, typeof form.data.number)
+        expect(form.data).toStrictEqual({
+            name: "Hello",
+            number: "123"
+        })
+        expect(form.payload).toStrictEqual(data)
+        expect(repo.data).toStrictEqual(data)
+    })
 })
+

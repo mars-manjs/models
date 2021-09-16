@@ -3,17 +3,19 @@ import * as _ from "lodash"
 import { initConfig } from "./helpers"
 import { NotImplementedError } from "./errors"
 import {observable} from 'mobx'
-import { BaseModel } from "./base"
+import { Base } from "./base"
 import { PubSub } from "./pubsub"
 
-interface BaseRepositoryConfig_i {
+interface BaseRepoConfig_i {
     data?: any
 }
 
-const BaseRepositoryConfigDefaults = {
-} as BaseRepositoryConfig_i
-export class BaseRepository extends BaseModel{
-    config: BaseRepositoryConfig_i
+const BaseRepoConfigDefaults = {
+} as BaseRepoConfig_i
+
+
+export class BaseRepo extends Base{
+    config: BaseRepoConfig_i
 
 
     @observable
@@ -22,9 +24,9 @@ export class BaseRepository extends BaseModel{
     data: any
     onLoad: PubSub<any>
     onError: PubSub<any>
-    constructor(config: BaseRepositoryConfig_i) {
+    constructor(config: BaseRepoConfig_i) {
         super()
-        this.config = initConfig(BaseRepositoryConfigDefaults, config)
+        this.config = initConfig(BaseRepoConfigDefaults, config)
         this.data = config.data
         this.onLoad = new PubSub()
         this.onError = new PubSub()
@@ -95,33 +97,33 @@ export class BaseRepository extends BaseModel{
 * 
 **/
 // 
-export class FirestoreRepository extends BaseRepository {
+export class FirestoreRepo extends BaseRepo {
     // TODO
 }
 
-export class GraphQLRepository extends BaseRepository {
+export class GraphQLRepo extends BaseRepo {
     // TODO
 }
 
-interface APIRepositoryConfig_i extends BaseRepositoryConfig_i{
+interface APIRepoConfig_i extends BaseRepoConfig_i{
     path: string
     method?: 'CONNECT'|'DELETE'|'GET'|'HEAD'|'OPTIONS'|'PATCH'|'POST'|'PUT'|'TRACE',
     headers?: ()=>{} | {}
     body?:    ()=>{} | {}
 }
 
-const APIRepositoryConfigDefaults = {
+const APIRepoConfigDefaults = {
     path: '',
     method: 'GET'
-} as APIRepositoryConfig_i
+} as APIRepoConfig_i
 
-export class APIRepository extends BaseRepository {
-    config: APIRepositoryConfig_i
-    response: Response
-    data: any
-    constructor(config: APIRepositoryConfig_i){
+export class APIRepo extends BaseRepo {
+    declare config: APIRepoConfig_i
+    declare response: Response
+    declare data: any
+    constructor(config: APIRepoConfig_i){
         super({})
-        this.config = initConfig(APIRepositoryConfigDefaults, config)
+        this.config = initConfig(APIRepoConfigDefaults, config)
     }
 
     get body(){
@@ -185,23 +187,23 @@ function timeout(ms) {
 }
 
 
-interface MockRepositoryConfig_i extends BaseRepositoryConfig_i{
+interface MockRepoConfig_i extends BaseRepoConfig_i{
     data: any,
     finalState?: state_t
 }
 
-const MockRepositoryConfig = {
+const MockRepoConfig = {
     data: {},
     finalState: 'loaded'
-} as MockRepositoryConfig_i
+} as MockRepoConfig_i
 
-export class MockRepository extends BaseRepository{
-    config: MockRepositoryConfig_i
-    constructor(config: MockRepositoryConfig_i){
+export class MockRepo extends BaseRepo{
+    declare config: MockRepoConfig_i
+    constructor(config: MockRepoConfig_i){
         super({
             data: config.data
         })
-        this.config = initConfig(MockRepositoryConfig, config)
+        this.config = initConfig(MockRepoConfig, config)
         // console.log("CREATING MOCK REPOSITORY")
     }
 
