@@ -14,10 +14,10 @@ type modelClass = new (...args: any[]) => Model;
 
 interface child_i { key: string, model: modelClass }
 
-interface ModelConfig_i{
-    data?: any
-    repos?: repoConfig
-    forms?: formConfig
+interface ModelConfig_i<DataT, RepoT=any, FormT=any>{
+    data?: DataT
+    repos?: RepoT
+    forms?: FormT
     async?: boolean
     children?: modelClass | {[key: string]: child_i }
     parent?: Model
@@ -27,11 +27,18 @@ interface ModelConfig_i{
 
 const ModelConfigDefaults = {
     async: true
-} as ModelConfig_i
+} as ModelConfig_i<any, any, any>
 
 
 
-export class Model extends Base{
+
+
+// type IsMain<T>  = T extends Base ? {main: T} : T
+type IsMain<T, BaseClass>  = T extends {[key: string]: BaseClass} ? T : {main: T}
+type IsMainRepo<T> = IsMain<T, BaseRepo>
+type IsMainForm<T> = IsMain<T, FormModel>
+
+export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo} = any, FormT extends FormModel|{[key: string]: FormModel} = any> extends Base{
     /**
      * Model implements the base functionality of BaseDataItemModel and CollectionModel
      */
@@ -39,23 +46,23 @@ export class Model extends Base{
 
     @observable
     asyncState: state_t
-    config: ModelConfig_i
-    _repos: repoMainMap_i
-    _forms: formMainMap_i
+    config: ModelConfig_i<DataT, RepoT, FormT>
+    repos: IsMainRepo<RepoT>
+    forms: IsMainForm<FormT>
     _children: Children
     @observable
-    _data: any
-    parent?: Model
+    _data: DataT
+    parent?: Model<any>
     parentCollection?: Collection
-    constructor(config: ModelConfig_i) {
+    constructor(config: ModelConfig_i<DataT, RepoT, FormT>) {
         super()
         this.config = initConfig(ModelConfigDefaults, config)
 
         this._data = config.data
         this.asyncState = 'unloaded'
 
-        this._repos = format<repoMainMap_i>(this.config.repos)
-        this._forms = format<formMainMap_i>(this.config.forms)
+        this.repos = format<IsMainRepo<RepoT>>(this.config.repos)
+        this.forms = format<IsMainForm<FormT>>(this.config.forms)
 
         if(this.config.parent) this.parent = this.config.parent
         if(this.config.parentCollection) this.parentCollection = this.config.parentCollection
@@ -64,46 +71,31 @@ export class Model extends Base{
 
     }
 
-    get repo(){
-        return this.repos['main']
+    get repo(): BaseRepo|undefined{
+        
+        return (this.repos as IsMainForm<BaseRepo>).main
     }
-    get repos(): repoMainMap_i{
-        return this._repos
-    }
+
     set repo(repo: BaseRepo){
-        this._repos = {main: repo}
-    }
-    set repos(repos: repoMainMap_i){
-        // throw error if repos is already defined ?
-        // this._repos = new Repos(repos)
-        this._repos = repos
+        this.repos = {main: repo} as any
     }
 
-
-    get form(): FormModel{
+    get form(): FormModel|undefined{
         /**
          * get main form
          */
-        return this.forms.main
-    }
-    get forms(): formMainMap_i{
-        /**
-         * get object of forms
-         */
-        return this._forms
+        this.forms
+        return (this.forms as IsMainForm<FormModel>).main
     }
     set form(form: FormModel){
         /**
          * set forms
          */
-        this._forms = {main: form}
-    }
-    set forms(forms: formMainMap_i){
-        // throw error if repos is already defined ?
-        this._forms = forms
+        this.forms = {main: form} as any
+        // this.forms['main'] = form
     }
 
-    get data() {
+    get data(): DataT {
         if(this.repo){
             return this.repo.data
         }
@@ -199,16 +191,21 @@ export class Model extends Base{
     }
 }
 
-interface CollectionModelConfig_i extends ModelConfig_i {
+interface CollectionModelConfig_i<DataT, RepoT, FormT> extends ModelConfig_i<DataT, RepoT, FormT> {
     collections?: modelClass | {[key: string]: child_i }
+    data?: DataT,
+    repos?: RepoT,
+    forms?: FormT
 }
 
 const CollectionModelConfigDefaults = {
     ...ModelConfigDefaults,
     collections: Model
-} as CollectionModelConfig_i
+} as CollectionModelConfig_i<any, any, any>
 
-export class CollectionModel extends Model {
+
+
+export class CollectionModel<DataT extends Array<Record<any,any>> = any, RepoT extends BaseRepo|{[key: string]: BaseRepo} = any, FormT extends FormModel|{[key: string]: FormModel} = any> extends Model<DataT, RepoT, FormT> {
     /**
      * CollectionModel is for an array of Model (Item or Collection) 
      * 
@@ -219,12 +216,12 @@ export class CollectionModel extends Model {
      * - how to set the state of loaded only after having iterated through children
      * - async / sync collection
      */
-    declare config: CollectionModelConfig_i
+    declare config: CollectionModelConfig_i<DataT, RepoT, FormT>
 
     _collections: Collections
  
     // children: DynamicClass
-    constructor(config: CollectionModelConfig_i) {
+    constructor(config: CollectionModelConfig_i<DataT, RepoT, FormT>) {
         super({
             data: config.data,
             repos: config.repos,
@@ -246,7 +243,7 @@ export class CollectionModel extends Model {
         return this.collections.main
     }
 
-    map(args: (value: any, index: number, array: Model[]) => unknown){
+    map(args: (value: any, index: number, array: Model<DataT, RepoT, FormT>[]) => unknown){
         return this.collection.map(args)
     }
 
