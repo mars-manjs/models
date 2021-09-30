@@ -44,7 +44,7 @@ The goal of the form is
 - to abstract 
 
 
-# [Repo](<./docs/Repo.md>)
+# [Repo](<./docs/Repos.md>)
 Repos are the data sources, implemented with the repository pattern.
 
 They can effectively be any data source (GraphQL, Firestore, Clod Storage...) but as of right now only APIRepo is implemented

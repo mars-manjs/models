@@ -1,8 +1,8 @@
 import * as _ from 'lodash'
 
 import { BaseRepo } from "./repo"
-import { state_t, repoMainMap_i, formMainMap_i, repoConfig, formConfig } from "./types"
-import { initConfig, Repos } from "./helpers"
+import { state_t} from "./types"
+import { initConfig } from "./helpers"
 import { FormModel } from "./forms"
 import { observable } from "mobx"
 import { Children, Collections, Collection, format } from "."
@@ -14,7 +14,7 @@ type modelClass = new (...args: any[]) => Model;
 
 interface child_i { key: string, model: modelClass }
 
-interface ModelConfig_i<DataT, RepoT=any, FormT=any>{
+interface ModelConfig_i<DataT = any, RepoT=any, FormT=any>{
     data?: DataT
     repos?: RepoT
     forms?: FormT
@@ -27,7 +27,7 @@ interface ModelConfig_i<DataT, RepoT=any, FormT=any>{
 
 const ModelConfigDefaults = {
     async: true
-} as ModelConfig_i<any, any, any>
+} as ModelConfig_i
 
 
 
@@ -72,27 +72,17 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
     }
 
     get repo(): BaseRepo|undefined{
-        
+        /**
+         * get main form
+         */
         return (this.repos as IsMainForm<BaseRepo>).main
-    }
-
-    set repo(repo: BaseRepo){
-        this.repos = {main: repo} as any
     }
 
     get form(): FormModel|undefined{
         /**
          * get main form
          */
-        this.forms
         return (this.forms as IsMainForm<FormModel>).main
-    }
-    set form(form: FormModel){
-        /**
-         * set forms
-         */
-        this.forms = {main: form} as any
-        // this.forms['main'] = form
     }
 
     get data(): DataT {
@@ -101,8 +91,6 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         }
         return this._data
     }
-
-
 
     preLoad = async () => {
         /**
@@ -191,7 +179,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
     }
 }
 
-interface CollectionModelConfig_i<DataT, RepoT, FormT> extends ModelConfig_i<DataT, RepoT, FormT> {
+interface CollectionModelConfig_i<DataT = any, RepoT = any, FormT = any> extends ModelConfig_i<DataT, RepoT, FormT> {
     collections?: modelClass | {[key: string]: child_i }
     data?: DataT,
     repos?: RepoT,
@@ -201,7 +189,7 @@ interface CollectionModelConfig_i<DataT, RepoT, FormT> extends ModelConfig_i<Dat
 const CollectionModelConfigDefaults = {
     ...ModelConfigDefaults,
     collections: Model
-} as CollectionModelConfig_i<any, any, any>
+} as CollectionModelConfig_i
 
 
 

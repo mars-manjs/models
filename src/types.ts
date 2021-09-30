@@ -29,3 +29,9 @@ export interface child_i { key: string, model: modelClass }
 
 export type repoConfig = BaseRepo | repoMainMap_i
 export type formConfig = FormModel  | formMainMap_i
+
+
+export interface event_i{
+    type: string
+    data: any
+}

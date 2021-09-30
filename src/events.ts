@@ -1,3 +1,2 @@
-import * as EventEmitter from 'events';
-
-export const events = new EventEmitter();
+import {EventsEmitter} from '@mars-man/events';
+export const events = new EventsEmitter();

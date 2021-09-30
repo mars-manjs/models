@@ -1,3 +1,7 @@
+# September 24th notes
+1. considered add `submit: repo` to form, but figured that this couples form and repo too much.
+ 
+
 # Meeting September 13th 2021 with Waleed
 ## onChange
 ```jsx

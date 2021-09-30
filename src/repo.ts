@@ -1,52 +1,55 @@
-import { state_t } from "./types"
+import { event_i, state_t } from "./types"
 import * as _ from "lodash"
 import { initConfig } from "./helpers"
 import { NotImplementedError } from "./errors"
 import {observable} from 'mobx'
 import { Base } from "./base"
 import { PubSub } from "./pubsub"
+import { events } from "."
 
-interface BaseRepoConfig_i {
-    data?: any
+interface BaseRepoConfig_i<DataT = any> {
+    data?: DataT,
+    events?: {
+        onLoad?: event_i,
+        onError?: event_i,
+    }
 }
 
 const BaseRepoConfigDefaults = {
 } as BaseRepoConfig_i
 
 
-export class BaseRepo extends Base{
-    config: BaseRepoConfig_i
+export class BaseRepo<DataT = any> extends Base{
+    config: BaseRepoConfig_i<DataT>
 
 
     @observable
     state: state_t
     response: any
-    data: any
+    data: DataT
     onLoad: PubSub<any>
     onError: PubSub<any>
-    constructor(config: BaseRepoConfig_i) {
+    constructor(config: BaseRepoConfig_i<DataT>) {
         super()
         this.config = initConfig(BaseRepoConfigDefaults, config)
         this.data = config.data
         this.onLoad = new PubSub()
         this.onError = new PubSub()
+
+
+        // events
+        if(config?.events?.onLoad){
+            this.onLoad.subscribe(()=>{
+                events.emit(config.events.onLoad.type, config.events.onLoad.data)
+            })
+        }
+        if(config?.events?.onError){
+            this.onError.subscribe(()=>{
+                events.emit(config.events.onError.type, config.events.onError.data)
+            })
+        }
         this.state = 'unloaded'
     }
-    // set state(state: state_t){
-    //     console.log("STATE IS BEING OVER WRITTEN", state)
-    //     this._state = state
-    // }
-    // get state(){
-    //     return this._state
-    // }
-
-    // onLoad = (subscriber: (value: any)=>void) => {
-    //     this.onLoadSub.subscribe(subscriber)
-    // }
-    // onError = (subscriber: (value: any)=>void) => {
-    //     this.onLoadSub.subscribe(subscriber)
-    // }
-
 
     preCall = async (): Promise<any> => {
         /**
@@ -105,7 +108,7 @@ export class GraphQLRepo extends BaseRepo {
     // TODO
 }
 
-interface APIRepoConfig_i extends BaseRepoConfig_i{
+interface APIRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT>{
     path: string
     method?: 'CONNECT'|'DELETE'|'GET'|'HEAD'|'OPTIONS'|'PATCH'|'POST'|'PUT'|'TRACE',
     headers?: ()=>{} | {}
@@ -117,11 +120,10 @@ const APIRepoConfigDefaults = {
     method: 'GET'
 } as APIRepoConfig_i
 
-export class APIRepo extends BaseRepo {
-    declare config: APIRepoConfig_i
+export class APIRepo<DataT = any> extends BaseRepo {
+    declare config: APIRepoConfig_i<DataT>
     declare response: Response
-    declare data: any
-    constructor(config: APIRepoConfig_i){
+    constructor(config: APIRepoConfig_i<DataT>){
         super({})
         this.config = initConfig(APIRepoConfigDefaults, config)
     }
@@ -187,8 +189,8 @@ function timeout(ms) {
 }
 
 
-interface MockRepoConfig_i extends BaseRepoConfig_i{
-    data: any,
+interface MockRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT>{
+    data: DataT,
     finalState?: state_t
 }
 
@@ -197,9 +199,9 @@ const MockRepoConfig = {
     finalState: 'loaded'
 } as MockRepoConfig_i
 
-export class MockRepo extends BaseRepo{
-    declare config: MockRepoConfig_i
-    constructor(config: MockRepoConfig_i){
+export class MockRepo<DataT = any> extends BaseRepo{
+    declare config: MockRepoConfig_i<DataT>
+    constructor(config: MockRepoConfig_i<DataT>){
         super({
             data: config.data
         })

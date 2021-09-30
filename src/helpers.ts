@@ -36,44 +36,6 @@ export const format = <T>(d: Base|T): T => {
     }
 }
 
-export class MapClass<T, CLSObj extends main_i<T>>{
-    private _data: CLSObj
-    constructor(d?: T | CLSObj) {
-        if (d === undefined) return
-        if (d instanceof Base) {
-            this._data = { main: d } as CLSObj
-        } else {
-            this._data = d as CLSObj
-        }
-    }
-    // extend(d: formMainMap_i) {
-    //     this._data = {
-    //         ...this._data,
-    //         ...d
-    //     }
-    // }
-    get data() {
-        return this._data
-    }
-}
-
-
-
-export class Forms extends MapClass<FormModel, formMainMap_i>{
-    constructor(d: FormModel | formMainMap_i) {
-        super(d);
-    }
-}
-
-
-export class Repos extends MapClass<BaseRepo, repoMainMap_i>{
-    constructor(d: BaseRepo | repoMainMap_i) {
-        super(d);
-    }
-}
-
-
-
 export class Children {
     childrenConfig: { [key: string]: child_i } = {}
     children: { [key: string]: Model } = {}

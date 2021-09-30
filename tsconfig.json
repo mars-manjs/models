@@ -4,6 +4,7 @@
         "outDir": "lib",
         "moduleResolution": "node",
         "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
         "lib": [
             "esnext",
             "dom",

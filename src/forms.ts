@@ -46,8 +46,6 @@ export const getErrors = async (v: any): Promise<{[key: string]: string}> => {
 
 
 
-type castFunc_t = (val: any)=>any
-
 interface key_i{
     key: string
     cast?: any //Number|String|Boolean|castFunc_t
@@ -55,9 +53,9 @@ interface key_i{
 
 type key_t = string|key_i
 type keys_t = [key_t, key_t][]
-interface FormModelConfig_i{
-    validator?: new () => any
-    data?: any
+interface FormModelConfig_i<DataT = any>{
+    validator?: new (...args: any[]) => any
+    data?: DataT
     repo?: BaseRepo
     // first column represents the frontend datastructure, second column represents the backend data structure
     keys?: keys_t
@@ -69,7 +67,7 @@ const FormModelConfigDefaults = {
     keys: []
 } as FormModelConfig_i
 
-export class FormModel extends Base{
+export class FormModel<DataT extends Record<string, any> = any> extends Base{
 
 
     @observable
@@ -78,12 +76,12 @@ export class FormModel extends Base{
     state: 'valid'|'invalid'
 
 
-    config: FormModelConfig_i
-    errors: {[key: string] : string}
+    config: FormModelConfig_i<DataT>
+    errors: Record<keyof DataT, string>|{} = {}
     private validator?: new () => any
     keys: keys_t
     repo?: BaseRepo
-    constructor(config: FormModelConfig_i){
+    constructor(config: FormModelConfig_i<DataT>){
         super()
         this.config = initConfig(FormModelConfigDefaults, config)
         this.keys = this.config.keys
@@ -187,7 +185,6 @@ export class FormModel extends Base{
 
             // TODO: there has to be a better way of doing this
             if(e.target !== undefined) value = e.target.value
-            // if(e.constructor.name === "Event") value = e.target.value
             else value = e
             _.set(this.data, key, value)
             this.validateDebounce()
@@ -203,7 +200,9 @@ export class FormModel extends Base{
          */
         return _.get(this.data, key)
     }
-
+    getError(key){
+        return this.errors[key]
+    }
 
 
     
@@ -225,7 +224,7 @@ export class FormModel extends Base{
     }
 
 
-    convert = (obj, map, castMap) => {
+    convert = <T extends {} = any>(obj, map, castMap): T => {
         /**
          * @param obj: object to be converted
          * @param map maps keys of obj to keys of 'desired object' shape
@@ -246,7 +245,7 @@ export class FormModel extends Base{
             // console.log(key, kout, val)
 
         }
-        return out
+        return out as T
     }
 
 
@@ -267,13 +266,12 @@ export class FormModel extends Base{
         const v = new this.validator()
         Object.assign(v, data)
         const errors = await getErrors(v)
-        this.errors = this.convert(errors, this.inMap, {})
+        this.errors = this.convert<Record<keyof DataT, string>>(errors, this.inMap, {})
+        console.log(data, errors, this.errors)
         this.state = Object.keys(this.errors).length == 0 ? 'valid' : 'invalid'
         // console.log("validate", data, errors, this.isValid)
         return this.state
     }
     
     validateDebounce = _.debounce(this.validate, 200, {leading: true})
-
-
 }

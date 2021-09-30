@@ -1,5 +1,5 @@
 // import '@types/jest';
-import { CollectionModel, MockRepo, Model, FormModel, Forms, APIRepo, BaseRepo } from "../src"
+import { CollectionModel, MockRepo, Model, FormModel, BaseRepo } from "../src"
 
 // class ChildsDataModel extends CollectionModel{
 //     constructor(config){
