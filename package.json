@@ -1,6 +1,6 @@
 {
   "name": "@mars-man/models",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "for data models, forms and repository pattern",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -9,7 +9,7 @@
     "test": "__tests__"
   },
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "jest",
     "prepublish": "tsc -b",
     "build": "tsc -b"
   },
