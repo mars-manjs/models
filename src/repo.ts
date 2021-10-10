@@ -15,7 +15,7 @@ interface BaseRepoConfig_i<DataT = any> {
     }
 }
 
-const BaseRepoConfigDefaults = {
+export const BaseRepoConfigDefaults = {
 } as BaseRepoConfig_i
 
 
@@ -29,14 +29,14 @@ export class BaseRepo<DataT = any> extends Base{
     data: DataT
     onLoad: PubSub<any>
     onError: PubSub<any>
-    constructor(config: BaseRepoConfig_i<DataT>) {
+    constructor(config?: BaseRepoConfig_i<DataT>) {
         super()
         this.config = initConfig(BaseRepoConfigDefaults, config)
-        this.data = config.data
+        this.data = this.config.data
         this.onLoad = new PubSub()
         this.onError = new PubSub()
 
-
+        // console.log(config.events)
         // events
         if(config?.events?.onLoad){
             this.onLoad.subscribe(()=>{
@@ -82,12 +82,23 @@ export class BaseRepo<DataT = any> extends Base{
          */
         throw new NotImplementedError()
     }
+    _postCall = async () => {
+        /**
+         * cannot be written over
+         * 
+         * this is used for common postCall logic of a repo including
+         * 1. emiting pubsub events
+         */
+        if(this.state == 'loaded') this.onLoad.emit(this.data)
+        if(this.state == 'error') this.onError.emit(this.data)
+    }
 
-    call = async () => {
+    async call(payload?: DataT){
         await this.preCall()
         await this.fetch()
         await this.parse()
         await this.postCall()
+        await this._postCall()
     }
 }
 
@@ -99,7 +110,7 @@ export class BaseRepo<DataT = any> extends Base{
 * - BaseAPIModel: for abstracting RESTful interactions
 * 
 **/
-// 
+
 export class FirestoreRepo extends BaseRepo {
     // TODO
 }
@@ -112,7 +123,7 @@ interface APIRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT>{
     path: string
     method?: 'CONNECT'|'DELETE'|'GET'|'HEAD'|'OPTIONS'|'PATCH'|'POST'|'PUT'|'TRACE',
     headers?: ()=>{} | {}
-    body?:    ()=>{} | {}
+    body?:    ()=>DataT | DataT
 }
 
 const APIRepoConfigDefaults = {
@@ -123,16 +134,18 @@ const APIRepoConfigDefaults = {
 export class APIRepo<DataT = any> extends BaseRepo {
     declare config: APIRepoConfig_i<DataT>
     declare response: Response
-    constructor(config: APIRepoConfig_i<DataT>){
+    _body: DataT|(()=>DataT)
+    constructor(config?: APIRepoConfig_i<DataT>){
         super({})
         this.config = initConfig(APIRepoConfigDefaults, config)
+        this._body = this.config.body
     }
 
     get body(){
-        if(typeof this.config.body === "function"){
-            return JSON.stringify(this.config.body())
+        if(typeof this._body === "function"){
+            return JSON.stringify((this._body as ()=>DataT)())
         }
-        return JSON.stringify(this.config.body)
+        return JSON.stringify(this._body)
     }
 
     get options(){
@@ -144,9 +157,13 @@ export class APIRepo<DataT = any> extends BaseRepo {
             }
         }
     }
-
+    call = async (payload?: DataT) => {
+        if(payload) {
+            this._body = payload
+        }
+        await super.call()
+    }
     fetch = async () => {
-        // console.log(this.config.path, this.options)
         this.response = await fetch(this.config.path, this.options)
     }
 
@@ -160,25 +177,10 @@ export class APIRepo<DataT = any> extends BaseRepo {
          */
         if (this.response.status >= 200 && this.response.status < 300) {
             this.state = 'loaded'
-            /**
-             * emits to LoadPubSub
-             */
-            this.onLoad.emit(this.data)
         }else{
             this.state = 'error'
-            /**
-             * emits to LoadPubSub
-             */
-            this.onError.emit(this.data)
         }
-
-
     }
-
-    // call = () => {
-    //     // abstraction of Fetch API
-    //     // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
-    // }
 }
 
 
@@ -201,10 +203,8 @@ const MockRepoConfig = {
 
 export class MockRepo<DataT = any> extends BaseRepo{
     declare config: MockRepoConfig_i<DataT>
-    constructor(config: MockRepoConfig_i<DataT>){
-        super({
-            data: config.data
-        })
+    constructor(config?: MockRepoConfig_i<DataT>){
+        super(config)
         this.config = initConfig(MockRepoConfig, config)
         // console.log("CREATING MOCK REPOSITORY")
     }
@@ -219,7 +219,25 @@ export class MockRepo<DataT = any> extends BaseRepo{
     
     postCall = async () => {
         this.state = this.config.finalState
-        // console.log("POSTCALL", this.state)
-        this.onLoad.emit(this.data)
     }
+}
+
+export const PeriodicRepo = <T extends BaseRepo>(repo: T): T => {
+    
+    setInterval(()=>{
+        repo.call()
+    }, 5000)
+    
+    return repo
+}
+
+export const OnDemandRepo = <T extends BaseRepo>(repo: T): T => {
+    return new Proxy(repo, {
+        get: function(target, prop, receiver){
+            if(prop === "data" && repo.state == "unloaded"){
+                repo.call()
+            }
+            return Reflect.get(target, prop, receiver)
+        }
+    })
 }

@@ -1,7 +1,6 @@
 import * as _ from "lodash"
 import * as _fp from "lodash/fp"
-import { BaseRepo, repoMainMap_i, FormModel } from ".";
-import { map_i, formMainMap_i, modelClass, child_i, main_i } from "./types";
+import { modelClass, child_i, main_i } from "./types";
 import { Base } from "./base";
 import { Model } from "./model";
 import { observable } from "mobx";
@@ -23,6 +22,7 @@ export const nestedKeys = (obj) => {
 
 export const initConfig = (defaultConfig, config) => {
     // return _.merge(_.cloneDeep(defaultConfig), _.cloneDeep(config))
+    if(!config) return defaultConfig
     return _fp.merge(defaultConfig, config)
 }
 
@@ -124,6 +124,9 @@ export class Collection {
     map = (args: (value: any, index: number, array: Model[]) => unknown) => {
         return this.models.map(args)
     }
+    filter =  ( predicate: (value: Model<any, any, any>, index: number, array: Model<any, any, any>[]) => unknown) => {
+        return this.models.filter(predicate)
+    }
     *[Symbol.iterator](){
         for(let item of this.models){
             yield item;
@@ -141,7 +144,6 @@ export class Collection {
         this.models = _.filter(this.models, (item)=>{
             return item !== model
         })
-        // TODO
     }
 
 

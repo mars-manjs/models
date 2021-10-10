@@ -1,4 +1,4 @@
-import { FormModel, MockRepo } from '../src'
+import { FormModel, FormModelConfigDefaults, MockRepo } from '../src'
 import { transform } from 'lodash'
 import { IsString, IsNotEmpty, IsDefined, ValidateNested, MaxLength, Max, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -7,16 +7,19 @@ import "reflect-metadata";
 
 class GreetingsValidator {
     @IsNumber()
+    //@ts-ignore
     hello: number
 }
 
 class Validator {
     @Max(500)
+    //@ts-ignore
     world: number;
 
     @IsDefined()
     @ValidateNested()
     @Type(() => GreetingsValidator)
+    //@ts-ignore
     greetings: GreetingsValidator;
 }
 
@@ -34,6 +37,15 @@ const form = new FormModel({
         ["hello", "greetings.hello"],
         ["world", { key: "world", cast: Number }]
     ]
+})
+
+
+describe('empty config', () => {
+    test('should be empty object', () => {
+        const form = new FormModel()
+
+        expect(form.config).toBe(FormModelConfigDefaults)
+    })
 })
 
 test('form configurations', () => {
@@ -120,11 +132,11 @@ describe('form repo loading', () => {
 
         const repo = new MockRepo({ data })
         const form = new FormModel({
-            repo, 
+            repo,
             keys: [
                 ["name", "info.name"],
-                [{key: "number", cast: String}, {key: "number", cast: Number}]
-            ] 
+                [{ key: "number", cast: String }, { key: "number", cast: Number }]
+            ]
         })
         // console.log("preload data", data, form.data)
         expect(form.data).toStrictEqual({})
@@ -139,3 +151,17 @@ describe('form repo loading', () => {
     })
 })
 
+
+
+describe('submit repo', () => {
+    test('should work', async () => {
+        const data = { abc: 123 }
+        const repo = new MockRepo({ data })
+        const form = new FormModel({
+            submit: repo
+        })
+        expect(repo.state).toBe('unloaded')
+        await form.submit()
+        expect(repo.state).toBe('loaded')
+    })
+})

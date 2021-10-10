@@ -1,5 +1,5 @@
 // import '@types/jest';
-import { CollectionModel, MockRepo, Model, FormModel, BaseRepo } from "../src"
+import { CollectionModel, MockRepo, Model, FormModel, BaseRepo, CollectionModelConfigDefaults, ModelConfigDefaults } from "../src"
 
 // class ChildsDataModel extends CollectionModel{
 //     constructor(config){
@@ -41,6 +41,19 @@ class Child2DataModel extends Model {
     }
 }
 
+
+describe('empty config', () => {
+    test('should be default object', () => {
+        const model = new Model()
+
+        expect(model.config).toStrictEqual(ModelConfigDefaults)
+    })    
+    test('should be collection default object', () => {
+        const model = new CollectionModel()
+
+        expect(model.config).toStrictEqual(CollectionModelConfigDefaults)
+    })
+})
 
 // const c = new Child2DataModel({})
 
@@ -346,4 +359,72 @@ describe('testing types', () => {
         m2.forms.main
 
     })
+})
+
+
+
+
+describe('dependents', ()=>{
+    test('load', async () => {
+        const data = { abc: 123 }
+        const repo = new MockRepo({ data })
+        class DataModel extends Model {
+            dependentModel: Model
+            constructor() {
+                super({
+                    repos: repo
+                })
+                this.dependentModel = new Model({
+                    repos: repo
+                })
+                this.dependents = [
+                    this.dependentModel
+                ]
+            }
+        }
+
+        const model = new DataModel()
+
+        expect(model.dependentModel.state).toBe('unloaded')
+        expect(model.state).toBe('unloaded')
+        await model.load()
+        expect(model.dependentModel.state).toBe('loaded')
+        expect(model.state).toBe('loaded')
+        expect(model.dependentModel.data).toStrictEqual(data)
+        expect(model.data).toStrictEqual(data)
+    })
+})
+
+
+describe('get by', ()=>{
+    test('works', async ()=>{
+        class NewCollectionModel extends CollectionModel<{id: number}[], BaseRepo, FormModel>{
+            constructor(){
+                super({
+                    data: [{id: 123}, {id: 456}, {id: 456}],
+                })
+            }
+        }
+    
+        const model = new NewCollectionModel()
+        await model.load()
+
+        let out = model.getBy('id', 456)
+
+        expect(out.length).toBe(2)
+        expect(out[0].data.id).toBe(456)
+
+        out = model.getBy('id', 123)
+
+        expect(out.length).toBe(1)
+        expect(out[0].data.id).toBe(123)
+
+        out = model.getBy('id', 0)
+
+        expect(out.length).toBe(0)
+        expect(out[0]).toBe(undefined)
+
+        
+    })
+
 })

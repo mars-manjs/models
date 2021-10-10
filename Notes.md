@@ -1,3 +1,15 @@
+# October 9th 2021
+`<Form form={form}>` should check for if `form == undefined` and not return children if it is  
+# October 5th 2021
+- added ability to pass empty config
+```ts
+const form  = new FormModel()
+const model = new Model()
+const repo = new BaseRepo()
+
+```
+
+
 # September 24th notes
 1. considered add `submit: repo` to form, but figured that this couples form and repo too much.
  

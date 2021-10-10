@@ -25,7 +25,7 @@ interface ModelConfig_i<DataT = any, RepoT=any, FormT=any>{
     // _collection?: Model[]
 }
 
-const ModelConfigDefaults = {
+export const ModelConfigDefaults = {
     async: true
 } as ModelConfig_i
 
@@ -49,16 +49,18 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
     config: ModelConfig_i<DataT, RepoT, FormT>
     repos: IsMainRepo<RepoT>
     forms: IsMainForm<FormT>
-    _children: Children
     @observable
     _data: DataT
     parent?: Model<any>
     parentCollection?: Collection
-    constructor(config: ModelConfig_i<DataT, RepoT, FormT>) {
+    _children: Children
+    dependents: Model[] = []
+
+    constructor(config?: ModelConfig_i<DataT, RepoT, FormT>) {
         super()
         this.config = initConfig(ModelConfigDefaults, config)
 
-        this._data = config.data
+        this._data = this.config.data
         this.asyncState = 'unloaded'
 
         this.repos = format<IsMainRepo<RepoT>>(this.config.repos)
@@ -68,7 +70,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         if(this.config.parentCollection) this.parentCollection = this.config.parentCollection
 
         this._children = new Children(this, this.config.children)
-
+        
     }
 
     get repo(): BaseRepo|undefined{
@@ -104,14 +106,28 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
          * use this for setting form data
          */
     }
+
+    loadRepo = async () => {
+        if(this.repo){
+            await this.repo.call()
+        }
+    }
+    loadChildren = async () => {
+        await this._children.load()
+    }
+    loadDependents = async () => {
+        for(const dependent of this.dependents){
+            await dependent.load()
+        }
+    }
+
     load = async () => {
         // awaiting preload causes load to exit event loop before state can be set to loading
         this.asyncState = this.asyncState === 'loaded' ? 'reloading' : 'loading'
         await this.preLoad()
-        if(this.repo){
-            await this.repo.call()
-        }
-        await this._children.load()
+        await this.loadRepo()
+        await this.loadChildren()
+        await this.loadDependents()
         await this.postLoad()
         this.asyncState = this.repo ? this.repo.state : 'loaded'
     }
@@ -177,6 +193,8 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
          */
         this.parentCollection?.remove(this)
     }
+
+
 }
 
 interface CollectionModelConfig_i<DataT = any, RepoT = any, FormT = any> extends ModelConfig_i<DataT, RepoT, FormT> {
@@ -186,14 +204,17 @@ interface CollectionModelConfig_i<DataT = any, RepoT = any, FormT = any> extends
     forms?: FormT
 }
 
-const CollectionModelConfigDefaults = {
+export const CollectionModelConfigDefaults = {
     ...ModelConfigDefaults,
     collections: Model
 } as CollectionModelConfig_i
 
 
 
-export class CollectionModel<DataT extends Array<Record<any,any>> = any, RepoT extends BaseRepo|{[key: string]: BaseRepo} = any, FormT extends FormModel|{[key: string]: FormModel} = any> extends Model<DataT, RepoT, FormT> {
+export class CollectionModel<DataT extends Array<Record<any,any>> = any, 
+                            RepoT extends BaseRepo|{[key: string]: BaseRepo} = any, 
+                            FormT extends FormModel|{[key: string]: FormModel} = any
+                            > extends Model<DataT, RepoT, FormT> {
     /**
      * CollectionModel is for an array of Model (Item or Collection) 
      * 
@@ -209,14 +230,15 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any, RepoT e
     _collections: Collections
  
     // children: DynamicClass
-    constructor(config: CollectionModelConfig_i<DataT, RepoT, FormT>) {
+    constructor(config?: CollectionModelConfig_i<DataT, RepoT, FormT>) {
         super({
-            data: config.data,
-            repos: config.repos,
-            forms: config.forms,
-            parent: config.parent,
-            children: config.children,
-            async: config.async
+            ...config
+            // data: config.data,
+            // repos: config.repos,
+            // forms: config.forms,
+            // parent: config.parent,
+            // children: config.children,
+            // async: config.async
         })
         this.config = initConfig(CollectionModelConfigDefaults, config)
         this._collections = new Collections(this, this.config.collections)
@@ -235,12 +257,18 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any, RepoT e
         return this.collection.map(args)
     }
 
+
+    loadCollections = async () => {
+        await this._collections.load()
+    }
     load = async () => {
         this.asyncState = 'loading'
-        if(this.repo){
-            await this.repo.call()
-        }
-        await this._collections.load()
+        await this.preLoad()
+        await this.loadRepo()
+        await this.loadChildren()
+        await this.loadCollections()
+        await this.loadDependents()
+        await this.postLoad()
         this.asyncState = 'loaded'
     }
 
@@ -263,5 +291,11 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any, RepoT e
          * CollectionModel removes from collections.main
          */
         this.collection?.remove(this)
+    }
+
+    getBy = (key: string, val: any) => {
+        return this.collection.filter((item)=>{
+            return item.data[key] === val
+        })
     }
 }

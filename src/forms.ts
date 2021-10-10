@@ -2,9 +2,10 @@ import * as _ from "lodash"
 import {classToClass} from 'class-transformer'
 import {validate, ValidationError} from 'class-validator'
 import { nestedKeys, initConfig } from "./helpers"
-import { observable } from "mobx"
+import { computed, observable } from "mobx"
 import { Base } from "./base"
 import { BaseRepo } from "./repo"
+import { validator_t } from "."
 
 
 export const getErrors = async (v: any): Promise<{[key: string]: string}> => {
@@ -29,13 +30,13 @@ export const getErrors = async (v: any): Promise<{[key: string]: string}> => {
         for(const error of errors){
             const property = [root, error.property].filter(val=>val!="").join('.')
             recurse(property, error.children)
-            
             const constraints = Object.values(error.constraints||{})
+            if (typeof _.get(out, property) === "object") {continue}
             if(constraints.length > 0){
                 // only shows the first constraint right now
-                out[property] = constraints[0]
+                _.set(out, property, constraints[0])
             }else{
-                out[property] = "error"
+                _.set(out, property, "error")
             }
         }
     }
@@ -54,41 +55,42 @@ interface key_i{
 type key_t = string|key_i
 type keys_t = [key_t, key_t][]
 interface FormModelConfig_i<DataT = any>{
-    validator?: new (...args: any[]) => any
+    validator?: validator_t
     data?: DataT
     repo?: BaseRepo
     // first column represents the frontend datastructure, second column represents the backend data structure
-    keys?: keys_t
+    keys?: keys_t,
+    submit?: BaseRepo
 }
 
-const FormModelConfigDefaults = {
+export const FormModelConfigDefaults = {
     validator: undefined,
     data: {},
     keys: []
 } as FormModelConfig_i
 
 export class FormModel<DataT extends Record<string, any> = any> extends Base{
+    config: FormModelConfig_i<DataT>
 
 
     @observable
     _data: any
     @observable
     state: 'valid'|'invalid'
-
-
-    config: FormModelConfig_i<DataT>
+    @observable
     errors: Record<keyof DataT, string>|{} = {}
-    private validator?: new () => any
+
+    private validator?: validator_t
     keys: keys_t
     repo?: BaseRepo
-    constructor(config: FormModelConfig_i<DataT>){
+    constructor(config?: FormModelConfig_i<DataT>){
         super()
         this.config = initConfig(FormModelConfigDefaults, config)
         this.keys = this.config.keys
         this.validator = this.config.validator
         // data initialized last as it calls convert
         this.data = this.config.data
-        this.initRepo(config.repo)
+        this.initRepo(this.config.repo)
     }
 
     private initRepo(repo?: BaseRepo){
@@ -184,7 +186,7 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
             let value = undefined
 
             // TODO: there has to be a better way of doing this
-            if(e.target !== undefined) value = e.target.value
+            if(e && e.target !== undefined) value = e.target.value
             else value = e
             _.set(this.data, key, value)
             this.validateDebounce()
@@ -201,7 +203,7 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
         return _.get(this.data, key)
     }
     getError(key){
-        return this.errors[key]
+        return _.get(this.errors, key)
     }
 
 
@@ -210,6 +212,7 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
         this._data = this.convert(data, this.inMap, this.inCast)
     }
 
+    @computed
     get data(){
         return this._data
     }
@@ -231,18 +234,14 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
          * @param castMap maps keys of 'desired object' to a cast function (to type cast)
          */
         // convert(obj, map) to call _.
-        // console.log(obj, map, castMap)
         const out = {}
         const keys = nestedKeys(obj)
-        // console.log("KEYS", keys)
         for(const key of keys){
             const kout = map[key] || key
             const cast = castMap[kout]
-            // console.log()
             const rawVal = _.get(obj, key)
             const val = cast ? cast(rawVal) : rawVal
             _.set(out, kout, val)
-            // console.log(key, kout, val)
 
         }
         return out as T
@@ -267,11 +266,15 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
         Object.assign(v, data)
         const errors = await getErrors(v)
         this.errors = this.convert<Record<keyof DataT, string>>(errors, this.inMap, {})
-        console.log(data, errors, this.errors)
         this.state = Object.keys(this.errors).length == 0 ? 'valid' : 'invalid'
-        // console.log("validate", data, errors, this.isValid)
         return this.state
     }
     
     validateDebounce = _.debounce(this.validate, 200, {leading: true})
+
+
+    async submit(){
+        if(!this.config.submit) return
+        await this.config.submit.call(this.payload)
+    }
 }
