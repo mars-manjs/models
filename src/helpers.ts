@@ -1,5 +1,4 @@
 import * as _ from "lodash"
-import * as _fp from "lodash/fp"
 import { modelClass, child_i, main_i } from "./types";
 import { Base } from "./base";
 import { Model } from "./model";
@@ -23,7 +22,7 @@ export const nestedKeys = (obj) => {
 export const initConfig = (defaultConfig, config) => {
     // return _.merge(_.cloneDeep(defaultConfig), _.cloneDeep(config))
     if(!config) return defaultConfig
-    return _fp.merge(defaultConfig, config)
+    return _.merge({}, defaultConfig, config)
 }
 
 
