@@ -3,8 +3,7 @@ import { modelClass, child_i, main_i } from "./types";
 import { Base } from "./base";
 import { Model } from "./model";
 import { observable } from "mobx";
-// lodash fp provides immutable methods
-// _.merge needs to not change the objects
+
 export const nestedKeys = (obj) => {
     const keys = []
     Object.keys(obj).forEach((key) => {
@@ -20,7 +19,6 @@ export const nestedKeys = (obj) => {
 }
 
 export const initConfig = (defaultConfig, config) => {
-    // return _.merge(_.cloneDeep(defaultConfig), _.cloneDeep(config))
     if(!config) return defaultConfig
     return _.merge({}, defaultConfig, config)
 }

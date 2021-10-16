@@ -11,7 +11,8 @@
         - i.e. does window.location start with ...
 - you should be able to not have a `main` repo
     - i.e. models that don't load data, but are used for Forms
-    
+- reset should reset to the initial data passed from the config
+
 # models
 - async
     - async: true - waits for all children / collections of a model to load before doing anything

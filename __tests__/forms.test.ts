@@ -161,7 +161,7 @@ describe('submit repo', () => {
             submit: repo
         })
         expect(repo.state).toBe('unloaded')
-        await form.submit()
+        await form.call()
         expect(repo.state).toBe('loaded')
     })
 })

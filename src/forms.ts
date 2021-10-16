@@ -54,13 +54,13 @@ interface key_i{
 
 type key_t = string|key_i
 type keys_t = [key_t, key_t][]
-interface FormModelConfig_i<DataT = any>{
+interface FormModelConfig_i<DataT = any, RepoT=any, SubmitRepoT=any>{
     validator?: validator_t
     data?: DataT
-    repo?: BaseRepo
+    repo?: RepoT
     // first column represents the frontend datastructure, second column represents the backend data structure
     keys?: keys_t,
-    submit?: BaseRepo
+    submit?: SubmitRepoT
 }
 
 export const FormModelConfigDefaults = {
@@ -69,8 +69,12 @@ export const FormModelConfigDefaults = {
     keys: []
 } as FormModelConfig_i
 
-export class FormModel<DataT extends Record<string, any> = any> extends Base{
-    config: FormModelConfig_i<DataT>
+export class FormModel<
+    DataT extends Record<string, any> = any, 
+    RepoT extends BaseRepo = any, 
+    SubmitRepoT extends BaseRepo = any> extends Base{
+
+    config: FormModelConfig_i<DataT, RepoT, SubmitRepoT>
 
 
     @observable
@@ -82,7 +86,8 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
 
     private validator?: validator_t
     keys: keys_t
-    repo?: BaseRepo
+    repo?: RepoT
+    submit?: SubmitRepoT
     constructor(config?: FormModelConfig_i<DataT>){
         super()
         this.config = initConfig(FormModelConfigDefaults, config)
@@ -91,9 +96,10 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
         // data initialized last as it calls convert
         this.data = this.config.data
         this.initRepo(this.config.repo)
+        this.submit = this.config.submit
     }
 
-    private initRepo(repo?: BaseRepo){
+    private initRepo(repo?: RepoT){
         if(!repo) return
         this.repo = repo
         repo.onLoad.subscribe(()=>{
@@ -273,8 +279,11 @@ export class FormModel<DataT extends Record<string, any> = any> extends Base{
     validateDebounce = _.debounce(this.validate, 200, {leading: true})
 
 
-    async submit(){
-        if(!this.config.submit) return
-        await this.config.submit.call(this.payload)
+    async call(){
+        /**
+         * calls submit repo with payload
+         */
+        if(!this.submit) return
+        await this.submit.call(this.payload)
     }
 }
