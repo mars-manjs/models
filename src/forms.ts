@@ -2,7 +2,7 @@ import * as _ from "lodash"
 import {classToClass} from 'class-transformer'
 import {validate, ValidationError} from 'class-validator'
 import { nestedKeys, initConfig } from "./helpers"
-import { computed, observable } from "mobx"
+import { computed, makeObservable, observable } from "mobx"
 import { Base } from "./base"
 import { BaseRepo } from "./repo"
 import { validator_t } from "."
@@ -97,6 +97,7 @@ export class FormModel<
         this.data = this.config.data
         this.initRepo(this.config.repo)
         this.submit = this.config.submit
+        makeObservable(this)
     }
 
     private initRepo(repo?: RepoT){

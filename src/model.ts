@@ -4,7 +4,7 @@ import { BaseRepo } from "./repo"
 import { state_t} from "./types"
 import { initConfig } from "./helpers"
 import { FormModel } from "./forms"
-import { observable } from "mobx"
+import { makeObservable, observable } from "mobx"
 import { Children, Collections, Collection, format } from "."
 import { Base } from "./base"
 
@@ -71,6 +71,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
 
         this._children = new Children(this, this.config.children)
         
+        makeObservable(this)
     }
 
     get repo(): BaseRepo|undefined{
@@ -242,6 +243,7 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         })
         this.config = initConfig(CollectionModelConfigDefaults, config)
         this._collections = new Collections(this, this.config.collections)
+        makeObservable(this)
     }
 
 

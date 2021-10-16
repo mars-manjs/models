@@ -2,7 +2,7 @@ import { event_i, state_t } from "./types"
 import * as _ from "lodash"
 import { initConfig } from "./helpers"
 import { NotImplementedError } from "./errors"
-import {observable} from 'mobx'
+import {makeObservable, observable} from 'mobx'
 import { Base } from "./base"
 import { PubSub } from "./pubsub"
 import { events } from "."
@@ -26,6 +26,7 @@ export class BaseRepo<DataT = any> extends Base{
     @observable
     state: state_t
     response: any
+    @observable
     data: DataT
     onLoad: PubSub<any>
     onError: PubSub<any>
@@ -49,6 +50,7 @@ export class BaseRepo<DataT = any> extends Base{
             })
         }
         this.state = 'unloaded'
+        makeObservable(this)
     }
 
     preCall = async (): Promise<any> => {
