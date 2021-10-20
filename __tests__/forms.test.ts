@@ -72,15 +72,26 @@ test('form cast map', () => {
     expect(form['outCast']).toStrictEqual({ "world": Number })
 })
 
-test('form convert', () => {
-    // console.log(form.convert(form.data, form['outMap'], form['outCast']))
-    // expect(form.convert(form.data, form['outMap'], form['outCast'])).toBe({})
-    // console.log(form.inMap, form.data)
-    // console.log(form.convert({name: "John Smith", greetings: {hello: "123"}, world: 456}, form.inMap, form['inCast']))
-    expect(form.convert(form.data, form['outMap'], form['outCast'])).toStrictEqual({ name: "John Smith", greetings: { hello: 123 }, world: 456 })
-    expect(form.convert({ name: "John Smith", greetings: { hello: "123" }, world: 456 }, form['inMap'], form['inCast'])).toStrictEqual({ name: "John Smith", hello: "123", world: 456 })
-})
 
+
+describe('convert', () => {
+    test('basic', () => {
+        expect(form.convert(form.data, form['outMap'], form['outCast'])).toStrictEqual({ name: "John Smith", greetings: { hello: 123 }, world: 456 })
+        expect(form.convert({ name: "John Smith", greetings: { hello: "123" }, world: 456 }, form['inMap'], form['inCast'])).toStrictEqual({ name: "John Smith", hello: "123", world: 456 })
+    })
+    test('empty list', () => {
+        const data = {
+            permissions: [],
+            roles: [123],
+        }
+        const form = new FormModel({
+            data
+        })
+        console.log(form.data)
+        expect(form.data).toStrictEqual(data)
+        // expect(form.payload).toBe(data)
+    })
+})
 
 test('form validator', async () => {
     await form.validate()
@@ -165,3 +176,5 @@ describe('submit repo', () => {
         expect(repo.state).toBe('loaded')
     })
 })
+
+

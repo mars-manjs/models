@@ -93,6 +93,7 @@ export class FormModel<
         this.config = initConfig(FormModelConfigDefaults, config)
         this.keys = this.config.keys
         this.validator = this.config.validator
+        this.state = 'valid'
         // data initialized last as it calls convert
         this.data = this.config.data
         this.initRepo(this.config.repo)

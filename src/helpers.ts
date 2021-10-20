@@ -7,7 +7,8 @@ import { observable } from "mobx";
 export const nestedKeys = (obj) => {
     const keys = []
     Object.keys(obj).forEach((key) => {
-        if (typeof obj[key] === "object" && obj[key]) {
+        // console.log("nestedKeys", key, typeof obj[key], obj[key])
+        if (typeof obj[key] === "object" && !Array.isArray(obj[key]) && obj[key]) {
             nestedKeys(obj[key]).forEach(innerKey => {
                 keys.push(`${key}.${innerKey}`)
             })
