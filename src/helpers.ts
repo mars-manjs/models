@@ -168,7 +168,6 @@ export class Collection {
 
         // if key is not defined iterate over the data
         const iter = key ? _.get(this.data, key) : this.data
-        // console.log("iter", modelObject, key, data, iter)
         for (const d of iter) {
             promises.push(this.initModel(d))
             // TODO should async still load collections?

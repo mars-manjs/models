@@ -125,7 +125,7 @@ interface APIRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT>{
     path: string
     method?: 'CONNECT'|'DELETE'|'GET'|'HEAD'|'OPTIONS'|'PATCH'|'POST'|'PUT'|'TRACE',
     headers?: ()=>{} | {}
-    body?:    ()=>DataT | DataT
+    body?:    (()=>DataT) | DataT
 }
 
 const APIRepoConfigDefaults = {

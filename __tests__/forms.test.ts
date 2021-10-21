@@ -1,6 +1,5 @@
 import { FormModel, FormModelConfigDefaults, MockRepo } from '../src'
-import { transform } from 'lodash'
-import { IsString, IsNotEmpty, IsDefined, ValidateNested, MaxLength, Max, IsNumber } from 'class-validator';
+import { IsDefined, ValidateNested, Max, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 import "reflect-metadata";
 

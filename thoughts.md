@@ -12,7 +12,8 @@
 - you should be able to not have a `main` repo
     - i.e. models that don't load data, but are used for Forms
 - reset should reset to the initial data passed from the config
-
+- APIRepo: error handle 404s
+ 
 # models
 - async
     - async: true - waits for all children / collections of a model to load before doing anything
@@ -20,6 +21,7 @@
     - something inbetween: loads all children / collections, but doesn't await it
 - should probably look at the async of the child rather than the parent
     - that way you can have different async rules for each child / collection
+- collection shouldn't attempt to load when repo is error
 
 # model
 - access childern by a name ?
