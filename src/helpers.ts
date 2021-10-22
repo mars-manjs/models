@@ -2,7 +2,7 @@ import * as _ from "lodash"
 import { modelClass, child_i, main_i } from "./types";
 import { Base } from "./base";
 import { Model } from "./model";
-import { observable } from "mobx";
+import { makeObservable, observable } from "mobx";
 
 export const nestedKeys = (obj) => {
     const keys = []
@@ -36,6 +36,7 @@ export const format = <T>(d: Base|T): T => {
 
 export class Children {
     childrenConfig: { [key: string]: child_i } = {}
+    @observable
     children: { [key: string]: Model } = {}
     constructor(public parent: Model, collections: modelClass | { [key: string]: child_i }) {
         this.childrenConfig = this.format(collections)
@@ -117,6 +118,7 @@ export class Collection {
     models: Model[] = []
     constructor(private parent: Model, private data: any, private modelObject: child_i) {
         this.models = []
+        makeObservable(this)
     }
     
     map = (args: (value: any, index: number, array: Model[]) => unknown) => {
