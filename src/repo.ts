@@ -170,7 +170,14 @@ export class APIRepo<DataT = any> extends BaseRepo {
     }
 
     parse = async () => {
-        this.data = await this.response.json()
+        try{
+            this.data = await this.response.text()
+            try{
+                this.data = JSON.parse(this.data)
+            }catch(e){
+            }
+        }catch(e){
+        }
     }
 
     postCall = async () => {

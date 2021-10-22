@@ -120,3 +120,23 @@ describe('events', () => {
         expect(count).toBe(1)
     })
 })
+
+describe('return types', ()=>{
+    test("object", async()=>{
+        const data = { test: 123 }
+        fetchMock.mockResponse(JSON.stringify(data), { status: 200 })
+
+
+        const repo = new APIRepo({ path: "/", method: 'GET' })
+        await repo.call()
+        expect(repo.data).toStrictEqual(data)
+    })
+    test("string", async()=>{
+        const data = "Hello World"
+        fetchMock.mockResponse(data, { status: 200 })
+
+        const repo = new APIRepo({ path: "/", method: 'POST' })
+        await repo.call()
+        expect(repo.data).toBe(data)
+    })
+})
