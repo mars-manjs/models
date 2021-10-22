@@ -2,7 +2,7 @@ import { event_i, state_t } from "./types"
 import * as _ from "lodash"
 import { initConfig } from "./helpers"
 import { NotImplementedError } from "./errors"
-import {makeObservable, observable} from 'mobx'
+import { makeObservable, observable } from 'mobx'
 import { Base } from "./base"
 import { PubSub } from "./pubsub"
 import { events } from "."
@@ -19,7 +19,7 @@ export const BaseRepoConfigDefaults = {
 } as BaseRepoConfig_i
 
 
-export class BaseRepo<DataT = any> extends Base{
+export class BaseRepo<DataT = any> extends Base {
     config: BaseRepoConfig_i<DataT>
 
 
@@ -39,13 +39,13 @@ export class BaseRepo<DataT = any> extends Base{
 
         // console.log(config.events)
         // events
-        if(config?.events?.onLoad){
-            this.onLoad.subscribe(()=>{
+        if (config?.events?.onLoad) {
+            this.onLoad.subscribe(() => {
                 events.emit(config.events.onLoad.type, config.events.onLoad.data)
             })
         }
-        if(config?.events?.onError){
-            this.onError.subscribe(()=>{
+        if (config?.events?.onError) {
+            this.onError.subscribe(() => {
                 events.emit(config.events.onError.type, config.events.onError.data)
             })
         }
@@ -91,11 +91,11 @@ export class BaseRepo<DataT = any> extends Base{
          * this is used for common postCall logic of a repo including
          * 1. emiting pubsub events
          */
-        if(this.state == 'loaded') this.onLoad.emit(this.data)
-        if(this.state == 'error') this.onError.emit(this.data)
+        if (this.state == 'loaded') this.onLoad.emit(this.data)
+        if (this.state == 'error') this.onError.emit(this.data)
     }
 
-    async call(payload?: DataT){
+    async call(payload?: DataT) {
         await this.preCall()
         await this.fetch()
         await this.parse()
@@ -121,11 +121,11 @@ export class GraphQLRepo extends BaseRepo {
     // TODO
 }
 
-interface APIRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT>{
+interface APIRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT> {
     path: string
-    method?: 'CONNECT'|'DELETE'|'GET'|'HEAD'|'OPTIONS'|'PATCH'|'POST'|'PUT'|'TRACE',
-    headers?: ()=>{} | {}
-    body?:    (()=>DataT) | DataT
+    method?: 'CONNECT' | 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT' | 'TRACE',
+    headers?: () => {} | {}
+    body?: (() => DataT) | DataT
 }
 
 const APIRepoConfigDefaults = {
@@ -136,21 +136,21 @@ const APIRepoConfigDefaults = {
 export class APIRepo<DataT = any> extends BaseRepo {
     declare config: APIRepoConfig_i<DataT>
     declare response: Response
-    _body: DataT|(()=>DataT)
-    constructor(config?: APIRepoConfig_i<DataT>){
+    _body: DataT | (() => DataT)
+    constructor(config?: APIRepoConfig_i<DataT>) {
         super({})
         this.config = initConfig(APIRepoConfigDefaults, config)
         this._body = this.config.body
     }
 
-    get body(){
-        if(typeof this._body === "function"){
-            return JSON.stringify((this._body as ()=>DataT)())
+    get body() {
+        if (typeof this._body === "function") {
+            return JSON.stringify((this._body as () => DataT)())
         }
         return JSON.stringify(this._body)
     }
 
-    get options(){
+    get options() {
         return {
             method: this.config.method,
             body: this.body,
@@ -160,7 +160,7 @@ export class APIRepo<DataT = any> extends BaseRepo {
         }
     }
     call = async (payload?: DataT) => {
-        if(payload) {
+        if (payload) {
             this._body = payload
         }
         await super.call()
@@ -170,13 +170,13 @@ export class APIRepo<DataT = any> extends BaseRepo {
     }
 
     parse = async () => {
-        try{
+        try {
             this.data = await this.response.text()
-            try{
+            try {
                 this.data = JSON.parse(this.data)
-            }catch(e){
+            } catch (e) {
             }
-        }catch(e){
+        } catch (e) {
         }
     }
 
@@ -186,7 +186,7 @@ export class APIRepo<DataT = any> extends BaseRepo {
          */
         if (this.response.status >= 200 && this.response.status < 300) {
             this.state = 'loaded'
-        }else{
+        } else {
             this.state = 'error'
         }
     }
@@ -200,7 +200,7 @@ function timeout(ms) {
 }
 
 
-interface MockRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT>{
+interface MockRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT> {
     data: DataT,
     finalState?: state_t
 }
@@ -210,9 +210,9 @@ const MockRepoConfig = {
     finalState: 'loaded'
 } as MockRepoConfig_i
 
-export class MockRepo<DataT = any> extends BaseRepo{
+export class MockRepo<DataT = any> extends BaseRepo {
     declare config: MockRepoConfig_i<DataT>
-    constructor(config?: MockRepoConfig_i<DataT>){
+    constructor(config?: MockRepoConfig_i<DataT>) {
         super(config)
         this.config = initConfig(MockRepoConfig, config)
         // console.log("CREATING MOCK REPOSITORY")
@@ -225,25 +225,25 @@ export class MockRepo<DataT = any> extends BaseRepo{
     parse = async () => {
         this.data = this.response.data
     }
-    
+
     postCall = async () => {
         this.state = this.config.finalState
     }
 }
 
 export const PeriodicRepo = <T extends BaseRepo>(repo: T): T => {
-    
-    setInterval(()=>{
+
+    setInterval(() => {
         repo.call()
     }, 5000)
-    
+
     return repo
 }
 
 export const OnDemandRepo = <T extends BaseRepo>(repo: T): T => {
     return new Proxy(repo, {
-        get: function(target, prop, receiver){
-            if(prop === "data" && repo.state == "unloaded"){
+        get: function (target, prop, receiver) {
+            if (prop === "data" && repo.state == "unloaded") {
                 repo.call()
             }
             return Reflect.get(target, prop, receiver)

@@ -244,7 +244,6 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         })
         this.config = initConfig(CollectionModelConfigDefaults, config)
         this._collections = new Collections(this, this.config.collections)
-        console.log("COLLECTION MODEL")
         makeObservable(this)
     }
 

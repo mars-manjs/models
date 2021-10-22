@@ -150,7 +150,6 @@ export class Collection {
 
 
     initModel = async (data) => {
-        console.log("INIT MODEL 1")
         const childClass = this.modelObject.model as modelClass
         const c = new childClass({
             data: data,
@@ -173,6 +172,7 @@ export class Collection {
 
         // if key is not defined iterate over the data
         const iter = key ? _.get(this.data, key) : this.data
+        // if(!iter && !!iter[Symbol.iterator]) return 
         for (const d of iter) {
             promises.push(this.initModel(d))
             // TODO should async still load collections?
