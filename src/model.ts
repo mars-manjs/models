@@ -4,7 +4,7 @@ import { BaseRepo } from "./repo"
 import { state_t} from "./types"
 import { initConfig } from "./helpers"
 import { FormModel } from "./forms"
-import { makeObservable, observable } from "mobx"
+import { action, computed, makeObservable, observable } from "mobx"
 import { Children, Collections, Collection, format } from "."
 import { Base } from "./base"
 
@@ -228,6 +228,7 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
      */
     declare config: CollectionModelConfig_i<DataT, RepoT, FormT>
 
+    @observable
     _collections: Collections
  
     // children: DynamicClass
@@ -243,17 +244,22 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         })
         this.config = initConfig(CollectionModelConfigDefaults, config)
         this._collections = new Collections(this, this.config.collections)
+        console.log("COLLECTION MODEL")
         makeObservable(this)
     }
 
-
+    @computed
     get collections(){
         return this._collections.collections
     }
 
+
+
+    @computed
     get collection(){
         return this.collections.main
     }
+
 
     map(args: (value: any, index: number, array: Model<DataT, RepoT, FormT>[]) => unknown){
         return this.collection.map(args)

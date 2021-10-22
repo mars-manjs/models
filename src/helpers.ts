@@ -36,7 +36,7 @@ export const format = <T>(d: Base|T): T => {
 
 export class Children {
     childrenConfig: { [key: string]: child_i } = {}
-    @observable
+    // @observable
     children: { [key: string]: Model } = {}
     constructor(public parent: Model, collections: modelClass | { [key: string]: child_i }) {
         this.childrenConfig = this.format(collections)
@@ -80,9 +80,11 @@ export class Children {
 
 export class Collections {
     collectionsConfig: { [key: string]: child_i } = {}
+    @observable
     collections: { [key: string]: Collection } = {}
     constructor(public model: Model, collections: modelClass | { [key: string]: child_i }) {
         this.collectionsConfig = this.format(collections)
+        makeObservable(this)
     }
     format = (collections): { [key: string]: child_i } => {
         let out = {}
@@ -148,6 +150,7 @@ export class Collection {
 
 
     initModel = async (data) => {
+        console.log("INIT MODEL 1")
         const childClass = this.modelObject.model as modelClass
         const c = new childClass({
             data: data,
