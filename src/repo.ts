@@ -19,7 +19,7 @@ export const BaseRepoConfigDefaults = {
 } as BaseRepoConfig_i
 
 
-export class BaseRepo<DataT = any> extends Base {
+export class BaseRepo<DataT = any, PayloadT = any> extends Base {
     config: BaseRepoConfig_i<DataT>
 
 
@@ -95,7 +95,7 @@ export class BaseRepo<DataT = any> extends Base {
         if (this.state == 'error') this.onError.emit(this.data)
     }
 
-    async call(payload?: DataT) {
+    async call(payload?: PayloadT) {
         await this.preCall()
         await this.fetch()
         await this.parse()
@@ -121,11 +121,11 @@ export class GraphQLRepo extends BaseRepo {
     // TODO
 }
 
-interface APIRepoConfig_i<DataT = any> extends BaseRepoConfig_i<DataT> {
+interface APIRepoConfig_i<BodyT = any, DataT = any> extends BaseRepoConfig_i<DataT> {
     path: string
     method?: 'CONNECT' | 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT' | 'TRACE',
     headers?: () => {} | {}
-    body?: (() => DataT) | DataT
+    body?: BodyT | (() => BodyT)
 }
 
 const APIRepoConfigDefaults = {
@@ -133,11 +133,11 @@ const APIRepoConfigDefaults = {
     method: 'GET'
 } as APIRepoConfig_i
 
-export class APIRepo<DataT = any> extends BaseRepo {
-    declare config: APIRepoConfig_i<DataT>
+export class APIRepo<DataT = any, PayloadT = DataT> extends BaseRepo<DataT, PayloadT> {
+    declare config: APIRepoConfig_i<PayloadT, DataT>
     declare response: Response
-    _body: DataT | (() => DataT)
-    constructor(config?: APIRepoConfig_i<DataT>) {
+    _body: PayloadT | (() => PayloadT)
+    constructor(config?: APIRepoConfig_i<PayloadT, DataT>) {
         super({})
         this.config = initConfig(APIRepoConfigDefaults, config)
         this._body = this.config.body
@@ -145,7 +145,7 @@ export class APIRepo<DataT = any> extends BaseRepo {
 
     get body() {
         if (typeof this._body === "function") {
-            return JSON.stringify((this._body as () => DataT)())
+            return JSON.stringify((this._body as () => PayloadT)())
         }
         return JSON.stringify(this._body)
     }
@@ -159,22 +159,28 @@ export class APIRepo<DataT = any> extends BaseRepo {
             }
         }
     }
-    call = async (payload?: DataT) => {
+    call = async (payload?: PayloadT) => {
         if (payload) {
             this._body = payload
         }
         await super.call()
     }
     fetch = async () => {
-        this.response = await fetch(this.config.path, this.options)
+        try{
+            this.response = await fetch(this.config.path, this.options)
+        }catch(e){
+            // console.warn(e)
+            this.state = 'error'
+        }
     }
 
     parse = async () => {
         try {
-            this.data = await this.response.text()
+            const str = await this.response.text()
             try {
-                this.data = JSON.parse(this.data)
+                this.data = JSON.parse(str)
             } catch (e) {
+                this.data = str as any
             }
         } catch (e) {
         }

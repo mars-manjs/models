@@ -174,7 +174,7 @@ export class Collection {
         const iter = key ? _.get(this.data, key) : this.data
         // if(!iter && !!iter[Symbol.iterator]) return 
         for (const d of iter) {
-            promises.push(this.initModel(d))
+            promises.push(this.add(d))
             // TODO should async still load collections?
         }
         await Promise.all(promises)

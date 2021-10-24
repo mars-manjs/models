@@ -74,6 +74,11 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         makeObservable(this)
     }
 
+
+    /**
+     * Getters
+     */
+
     get repo(): BaseRepo|undefined{
         /**
          * get main form
@@ -88,12 +93,26 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         return (this.forms as IsMainForm<FormModel>).main
     }
 
+    set data(val: DataT){
+        this._data = val
+    }
+
     get data(): DataT {
         if(this.repo){
             return this.repo.data
         }
         return this._data
     }
+
+    
+    
+    
+    
+    /**
+     * Load Hooks: use these for actions taken pre and post load
+     * ========================================
+     * 
+     */
 
     preLoad = async () => {
         /**
@@ -108,6 +127,12 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
          */
     }
 
+    /**
+     * Load Functions
+     * ========================================
+     * 
+     */
+
     loadRepo = async () => {
         if(this.repo){
             await this.repo.call()
@@ -121,12 +146,18 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
             await dependent.load()
         }
     }
+    loadModel = async () => {
+        if(this.repo !== undefined && this.repo.state === 'loaded'){
+            this.data = this.repo.data
+        }
+    }
 
     load = async () => {
         // awaiting preload causes load to exit event loop before state can be set to loading
         this.asyncState = this.asyncState === 'loaded' ? 'reloading' : 'loading'
         await this.preLoad()
         await this.loadRepo()
+        await this.loadModel()
         await this.loadChildren()
         await this.loadDependents()
         await this.postLoad()
@@ -168,9 +199,13 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         return this.children.main
     }
 
-    // Collection Functions
+    /**
+     * Collection Functions
+     * ========================================
+     * 
+     */
 
-    get defaultData(){
+    get defaultData(): DataT{
         /**
          * returns the default data to instantiate a new item in the collection
          * 
@@ -179,12 +214,13 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         return undefined
     }
 
-    add = () => {
+    add = (data?: DataT) => {
         /**
          * Model adds to parent
          * CollectionModel adds to collections.main
          */
-        this.parentCollection?.add(this.defaultData)
+        const out = data || this.defaultData
+        this.parentCollection?.add(out)
     }
 
     remove = () => { 
@@ -247,12 +283,17 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         makeObservable(this)
     }
 
+
+
+    /**
+     * Getters
+     * ========================================
+     * 
+     */
     @computed
     get collections(){
         return this._collections.collections
     }
-
-
 
     @computed
     get collection(){
@@ -260,11 +301,17 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
     }
 
 
-    map(args: (value: any, index: number, array: Model<DataT, RepoT, FormT>[]) => unknown){
-        return this.collection.map(args)
+
+    /**
+     * Load Functions
+     * ========================================
+     * 
+     */
+    loadModel = async () => {
+        if(this.repo !== undefined && this.repo.state === 'loaded'){
+            this.data = this.repo.data
+        }
     }
-
-
     loadCollections = async () => {
         await this._collections.load()
     }
@@ -272,6 +319,7 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         this.asyncState = 'loading'
         await this.preLoad()
         await this.loadRepo()
+        await this.loadModel()
         await this.loadChildren()
         await this.loadCollections()
         await this.loadDependents()
@@ -279,17 +327,29 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         this.asyncState = 'loaded'
     }
 
+
+
+    /**
+     * Collection Functions
+     * ========================================
+     * 
+     */
     get payload(): any{
         return this.collection.map((child)=>child.payload)
     }
 
 
-    add = () => {
+    map(args: (value: any, index: number, array: Model<DataT, RepoT, FormT>[]) => unknown){
+        return this.collection.map(args)
+    }
+
+    add = (data?: DataT) => {
         /**
          * Model adds to parent
          * CollectionModel adds to collections.main
          */
-        this.collection?.add(this.defaultData)
+        const out = data || this.defaultData
+        this.collection?.add(out)
     }
 
     remove = () => { 
