@@ -29,7 +29,7 @@ export type collectionsConfig_t = childrensConfig_t
 
 export interface event_i{
     type: string
-    data: any
+    data?: any
 }
 
 

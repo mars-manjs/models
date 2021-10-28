@@ -39,8 +39,9 @@ export class BaseRepo<DataT = any, PayloadT = any> extends Base {
 
         // console.log(config.events)
         // events
+        // console.log("YOOO!", config)
         if (config?.events?.onLoad) {
-            this.onLoad.subscribe(() => {
+            this.onLoad.subscribe((data) => {
                 events.emit(config.events.onLoad.type, config.events.onLoad.data)
             })
         }
@@ -64,14 +65,14 @@ export class BaseRepo<DataT = any, PayloadT = any> extends Base {
         /**
          * retrieve data from repository
          */
-        throw new NotImplementedError()
+        // throw new NotImplementedError()
     }
 
     parse = async (): Promise<any> => {
         /**
          * parse response data
          */
-        throw new NotImplementedError()
+        // throw new NotImplementedError()
     }
 
     postCall = async (): Promise<any> => {
@@ -82,7 +83,7 @@ export class BaseRepo<DataT = any, PayloadT = any> extends Base {
          * 
          * emits to onLoadSub 
          */
-        throw new NotImplementedError()
+        // throw new NotImplementedError()
     }
     _postCall = async () => {
         /**
@@ -91,7 +92,11 @@ export class BaseRepo<DataT = any, PayloadT = any> extends Base {
          * this is used for common postCall logic of a repo including
          * 1. emiting pubsub events
          */
-        if (this.state == 'loaded') this.onLoad.emit(this.data)
+        // console.log("_postcall")
+        if (this.state == 'loaded'){
+            this.onLoad.emit(this.data)
+            // console.log("emit", JSON.stringify(this.data))
+        } 
         if (this.state == 'error') this.onError.emit(this.data)
     }
 
@@ -133,12 +138,12 @@ const APIRepoConfigDefaults = {
     method: 'GET'
 } as APIRepoConfig_i
 
-export class APIRepo<DataT = any, PayloadT = DataT> extends BaseRepo<DataT, PayloadT> {
+export class APIRepo<DataT = any, PayloadT = any> extends BaseRepo<DataT, PayloadT> {
     declare config: APIRepoConfig_i<PayloadT, DataT>
     declare response: Response
     _body: PayloadT | (() => PayloadT)
     constructor(config?: APIRepoConfig_i<PayloadT, DataT>) {
-        super({})
+        super(config)
         this.config = initConfig(APIRepoConfigDefaults, config)
         this._body = this.config.body
     }
@@ -166,9 +171,9 @@ export class APIRepo<DataT = any, PayloadT = DataT> extends BaseRepo<DataT, Payl
         await super.call()
     }
     fetch = async () => {
-        try{
+        try {
             this.response = await fetch(this.config.path, this.options)
-        }catch(e){
+        } catch (e) {
             // console.warn(e)
             this.state = 'error'
         }

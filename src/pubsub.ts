@@ -37,6 +37,7 @@ export class PubSub<T> implements Publisher<T> {
 
     /** Emits a value to subscribed consumers. */
     emit(value: T) {
+        // console.log(this.consumers.size)
         if (this.consumers.size === 0) {
             return;
         }

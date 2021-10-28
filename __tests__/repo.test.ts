@@ -103,7 +103,23 @@ describe('events', () => {
         await repo.call()
         expect(count).toBe(1)
     })
+    test('onLoad multiple', async () => {
+        const repo = new MockRepo({
+            data: 123, events: {
+                onLoad: { type: 'onLoad', data: 123 }
+            }
+        })
+        let count = 0
+        events.on('onLoad', (data) => {
+            count += 1
+            expect(data).toBe(123)
+        })
 
+        await repo.call()
+        await repo.call()
+        await repo.call()
+        expect(count).toBe(3)
+    })
     test('onError', async () => {
         const repo = new MockRepo({
             data: 123, finalState: 'error', events: {
