@@ -129,7 +129,7 @@ export class GraphQLRepo extends BaseRepo {
 interface APIRepoConfig_i<BodyT = any, DataT = any> extends BaseRepoConfig_i<DataT> {
     path: string
     method?: 'CONNECT' | 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT' | 'TRACE',
-    headers?: () => {} | {}
+    headers?: {} | (() => {})
     body?: BodyT | (() => BodyT)
 }
 
@@ -142,10 +142,12 @@ export class APIRepo<DataT = any, PayloadT = any> extends BaseRepo<DataT, Payloa
     declare config: APIRepoConfig_i<PayloadT, DataT>
     declare response: Response
     _body: PayloadT | (() => PayloadT)
+    _headers: {} | (()=>{})
     constructor(config?: APIRepoConfig_i<PayloadT, DataT>) {
         super(config)
         this.config = initConfig(APIRepoConfigDefaults, config)
         this._body = this.config.body
+        this._headers = this.config.headers
     }
 
     get body() {
@@ -155,15 +157,26 @@ export class APIRepo<DataT = any, PayloadT = any> extends BaseRepo<DataT, Payloa
         return JSON.stringify(this._body)
     }
 
+    get headers(){
+        if(!this._headers) return {'Content-Type': 'application/json'}
+        if (typeof this._headers === "function") {
+            return this._headers()
+        }
+        return this._headers
+    }
+
     get options() {
         return {
             method: this.config.method,
             body: this.body,
             headers: {
-                'Content-Type': 'application/json'
+                ...this.headers
             }
         }
     }
+
+
+
     call = async (payload?: PayloadT) => {
         if (payload) {
             this._body = payload

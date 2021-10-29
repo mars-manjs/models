@@ -1,6 +1,6 @@
 {
   "name": "@mars-man/models",
-  "version": "1.3.9",
+  "version": "1.3.10",
   "description": "for data models, forms and repository pattern",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

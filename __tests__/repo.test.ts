@@ -9,6 +9,19 @@ fetchMock.enableMocks()
 //     expect(repo)
 // })
 
+describe('config', ()=>{
+    test('headers', ()=>{
+    fetchMock.mockResponse(JSON.stringify({ test: 123 }))
+
+        const repo = new APIRepo({
+            path: '/',
+            headers: {header123: 123}
+        })
+        console.log(repo.headers)
+        expect(repo.headers).toStrictEqual({header123: 123})
+    })
+})
+
 
 describe('empty config', () => {
     test('should be default object', () => {
