@@ -94,13 +94,19 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
     }
 
     set data(val: DataT){
-        this._data = val
+        this.loadData(val)
     }
 
+    public async loadData(data: DataT) {
+        /**
+         * The purpose of this function is to load data and reload children / collection
+         */
+        this._data = data
+        await this.loadChildren()
+    }
+
+
     get data(): DataT {
-        if(this.repo){
-            return this.repo.data
-        }
         return this._data
     }
 
@@ -146,9 +152,10 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
             await dependent.load()
         }
     }
+    
     loadModel = async () => {
         if(this.repo !== undefined && this.repo.state === 'loaded'){
-            this.data = this.repo.data
+            this._data = this.repo.data
         }
     }
 
@@ -283,6 +290,13 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         makeObservable(this)
     }
 
+    public async loadData (data: DataT){
+        /**
+         * The purpose of this function is to load data and reload children / collection
+         */
+        super.loadData(data)
+        await this.loadCollections()
+    }
 
 
     /**
@@ -307,11 +321,7 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
      * ========================================
      * 
      */
-    loadModel = async () => {
-        if(this.repo !== undefined && this.repo.state === 'loaded'){
-            this.data = this.repo.data
-        }
-    }
+
     loadCollections = async () => {
         await this._collections.load()
     }
