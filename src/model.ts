@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 
 import { BaseRepo } from "./repo"
-import { state_t} from "./types"
+import { state_t } from "./types"
 import { initConfig } from "./helpers"
 import { FormModel } from "./forms"
 import { action, computed, makeObservable, observable } from "mobx"
@@ -14,12 +14,12 @@ type modelClass = new (...args: any[]) => Model;
 
 interface child_i { key: string, model: modelClass }
 
-interface ModelConfig_i<DataT = any, RepoT=any, FormT=any>{
+interface ModelConfig_i<DataT = any, RepoT = any, FormT = any> {
     data?: DataT
     repos?: RepoT
     forms?: FormT
     async?: boolean
-    children?: modelClass | {[key: string]: child_i }
+    children?: modelClass | { [key: string]: child_i }
     parent?: Model
     parentCollection?: Collection
     // _collection?: Model[]
@@ -34,11 +34,15 @@ export const ModelConfigDefaults = {
 
 
 // type IsMain<T>  = T extends Base ? {main: T} : T
-type IsMain<T, BaseClass>  = T extends {[key: string]: BaseClass} ? T : {main: T}
+type IsMain<T, BaseClass> = T extends { [key: string]: BaseClass } ? T : { main: T }
 type IsMainRepo<T> = IsMain<T, BaseRepo>
 type IsMainForm<T> = IsMain<T, FormModel>
 
-export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo} = any, FormT extends FormModel|{[key: string]: FormModel} = any> extends Base{
+export class Model<
+    DataT = any,
+    RepoT extends BaseRepo | { [key: string]: BaseRepo } = any,
+    FormT extends FormModel | { [key: string]: FormModel } = any
+    > extends Base {
     /**
      * Model implements the base functionality of BaseDataItemModel and CollectionModel
      */
@@ -66,11 +70,11 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         this.repos = format<IsMainRepo<RepoT>>(this.config.repos)
         this.forms = format<IsMainForm<FormT>>(this.config.forms)
 
-        if(this.config.parent) this.parent = this.config.parent
-        if(this.config.parentCollection) this.parentCollection = this.config.parentCollection
+        if (this.config.parent) this.parent = this.config.parent
+        if (this.config.parentCollection) this.parentCollection = this.config.parentCollection
 
         this._children = new Children(this, this.config.children)
-        
+
         makeObservable(this)
     }
 
@@ -79,21 +83,21 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
      * Getters
      */
 
-    get repo(): BaseRepo|undefined{
+    get repo(): BaseRepo | undefined {
         /**
          * get main form
          */
         return (this.repos as IsMainForm<BaseRepo>).main
     }
 
-    get form(): FormModel|undefined{
+    get form(): FormModel | undefined {
         /**
          * get main form
          */
         return (this.forms as IsMainForm<FormModel>).main
     }
 
-    set data(val: DataT){
+    set data(val: DataT) {
         this.loadData(val)
     }
 
@@ -110,10 +114,10 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         return this._data
     }
 
-    
-    
-    
-    
+
+
+
+
     /**
      * Load Hooks: use these for actions taken pre and post load
      * ========================================
@@ -140,7 +144,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
      */
 
     loadRepo = async () => {
-        if(this.repo){
+        if (this.repo) {
             await this.repo.call()
         }
     }
@@ -148,13 +152,13 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         await this._children.load()
     }
     loadDependents = async () => {
-        for(const dependent of this.dependents){
+        for (const dependent of this.dependents) {
             await dependent.load()
         }
     }
-    
+
     loadModel = async () => {
-        if(this.repo !== undefined && this.repo.state === 'loaded'){
+        if (this.repo !== undefined && this.repo.state === 'loaded') {
             this._data = this.repo.data
         }
     }
@@ -164,6 +168,10 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         this.asyncState = this.asyncState === 'loaded' ? 'reloading' : 'loading'
         await this.preLoad()
         await this.loadRepo()
+        if (this.repo && this.repo.state === 'error') {
+            this.asyncState = 'error'
+            return
+        }
         await this.loadModel()
         await this.loadChildren()
         await this.loadDependents()
@@ -175,7 +183,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         if (this.config.async) {
             return this.asyncState
         }
-        if(this.repo){
+        if (this.repo) {
             return this.repo.state
         }
         return 'loaded'
@@ -183,12 +191,12 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
 
 
     // form functions
-    onChange(key: string){
+    onChange(key: string) {
         return this.form.onChange(key)
     }
 
 
-    get payload(): any{
+    get payload(): any {
         /**
          * TODO:
          * - add toJS from mobx?
@@ -198,11 +206,11 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
             ...this.child?.payload
         }
     }
-    get children(){
+    get children() {
         return this._children.children
     }
 
-    get child(): Model{
+    get child(): Model {
         return this.children.main
     }
 
@@ -212,7 +220,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
      * 
      */
 
-    get defaultData(): DataT{
+    get defaultData(): DataT {
         /**
          * returns the default data to instantiate a new item in the collection
          * 
@@ -230,7 +238,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         this.parentCollection?.add(out)
     }
 
-    remove = () => { 
+    remove = () => {
         /**
          * Model removes from parent
          * CollectionModel removes from collections.main
@@ -242,7 +250,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
 }
 
 interface CollectionModelConfig_i<DataT = any, RepoT = any, FormT = any> extends ModelConfig_i<DataT, RepoT, FormT> {
-    collections?: modelClass | {[key: string]: child_i }
+    collections: modelClass | { [key: string]: child_i }
     data?: DataT,
     repos?: RepoT,
     forms?: FormT
@@ -254,11 +262,11 @@ export const CollectionModelConfigDefaults = {
 } as CollectionModelConfig_i
 
 
-
-export class CollectionModel<DataT extends Array<Record<any,any>> = any, 
-                            RepoT extends BaseRepo|{[key: string]: BaseRepo} = any, 
-                            FormT extends FormModel|{[key: string]: FormModel} = any
-                            > extends Model<DataT, RepoT, FormT> {
+export class CollectionModel<
+    DataT extends Array<Record<any, any>> = any,
+    RepoT extends BaseRepo | { [key: string]: BaseRepo } = any,
+    FormT extends FormModel | { [key: string]: FormModel } = any
+    > extends Model<DataT, RepoT, FormT> {
     /**
      * CollectionModel is for an array of Model (Item or Collection) 
      * 
@@ -273,24 +281,16 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
 
     @observable
     _collections: Collections
- 
+
     // children: DynamicClass
     constructor(config?: CollectionModelConfig_i<DataT, RepoT, FormT>) {
-        super({
-            ...config
-            // data: config.data,
-            // repos: config.repos,
-            // forms: config.forms,
-            // parent: config.parent,
-            // children: config.children,
-            // async: config.async
-        })
+        super(config)
         this.config = initConfig(CollectionModelConfigDefaults, config)
         this._collections = new Collections(this, this.config.collections)
         makeObservable(this)
     }
 
-    public async loadData (data: DataT){
+    public async loadData(data: DataT) {
         /**
          * The purpose of this function is to load data and reload children / collection
          */
@@ -305,12 +305,12 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
      * 
      */
     @computed
-    get collections(){
+    get collections() {
         return this._collections.collections
     }
 
     @computed
-    get collection(){
+    get collection() {
         return this.collections.main
     }
 
@@ -329,6 +329,10 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         this.asyncState = 'loading'
         await this.preLoad()
         await this.loadRepo()
+        if (this.repo && this.repo.state === 'error') {
+            this.asyncState = 'error'
+            return
+        }
         await this.loadModel()
         await this.loadChildren()
         await this.loadCollections()
@@ -344,12 +348,12 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
      * ========================================
      * 
      */
-    get payload(): any{
-        return this.collection.map((child)=>child.payload)
+    get payload(): any {
+        return this.collection.map((child) => child.payload)
     }
 
 
-    map(args: (value: any, index: number, array: Model<DataT, RepoT, FormT>[]) => unknown){
+    map(args: (value: any, index: number, array: Model<DataT, RepoT, FormT>[]) => unknown) {
         return this.collection.map(args)
     }
 
@@ -362,7 +366,7 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         this.collection?.add(out)
     }
 
-    remove = () => { 
+    remove = () => {
         /**
          * Model removes from parent
          * CollectionModel removes from collections.main
@@ -371,8 +375,38 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
     }
 
     getBy = (key: string, val: any) => {
-        return this.collection.filter((item)=>{
+        return this.collection.filter((item) => {
             return item.data[key] === val
         })
+    }
+}
+
+
+
+
+
+
+
+type modelItemClass = new (...args: any[]) => ModelItem;
+interface collection_i { key: string, model: modelItemClass }
+
+interface ModelItemConfigDefaults_i<DataT = any, RepoT = any, FormT = any> extends ModelConfig_i<DataT, RepoT, FormT> {
+    data: DataT,
+    parent: CollectionModel,
+    parentCollection: Collection
+}
+
+export const ModelItemConfigDefaults = {
+
+}
+
+
+export class ModelItem<
+    DataT = any,
+    RepoT extends BaseRepo | { [key: string]: BaseRepo } = any,
+    FormT extends FormModel | { [key: string]: FormModel } = any
+    > extends Model<DataT, RepoT, FormT>{
+    constructor(config: ModelItemConfigDefaults_i) {
+        super(config)
     }
 }
