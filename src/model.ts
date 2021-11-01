@@ -164,6 +164,10 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         this.asyncState = this.asyncState === 'loaded' ? 'reloading' : 'loading'
         await this.preLoad()
         await this.loadRepo()
+        if (this.repo && this.repo.state === 'error') {
+            this.asyncState = 'error'
+            return
+        }
         await this.loadModel()
         await this.loadChildren()
         await this.loadDependents()
@@ -330,6 +334,10 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
         await this.preLoad()
         await this.loadRepo()
         await this.loadModel()
+        if (this.repo && this.repo.state === 'error') {
+            this.asyncState = 'error'
+            return
+        }
         await this.loadChildren()
         await this.loadCollections()
         await this.loadDependents()
