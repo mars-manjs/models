@@ -287,5 +287,13 @@ export class FormModel<
          */
         if(!this.submit) return
         await this.submit.call(this.payload)
+        if(this.submit.state === 'loaded') this.reset()
+    }
+
+
+    reset = () => {
+        /**
+         * TO BE IMPLEMENTED
+         */
     }
 }
