@@ -255,12 +255,28 @@ export class MockRepo<DataT = any> extends BaseRepo {
     }
 }
 
-export const PeriodicRepo = <T extends BaseRepo>(repo: T): T => {
+export const PeriodicRepo = <T extends BaseRepo>(repo: T, interval: number): T => {
+    let started = false
+    const periodicCall = () => {
+        if(!started){
+            started = true
+            setInterval(() => {
+                console.log(window.document.hidden, interval)
+                if(!window.document.hidden && window.document.hasFocus()){
+                    repo.call()
+                }
+            }, interval || 10000)
+        }
+    }
+    periodicCall()
 
-    setInterval(() => {
-        repo.call()
-    }, 5000)
-
+    // return new Proxy(repo, {
+        // get: function (target, prop, receiver) {
+            // if (prop === "call") {
+            // }
+            // return Reflect.get(target, prop, receiver)
+        // }
+    // })
     return repo
 }
 
