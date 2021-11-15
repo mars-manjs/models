@@ -4,8 +4,8 @@ import { BaseRepo } from "./repo"
 import { state_t} from "./types"
 import { initConfig } from "./helpers"
 import { FormModel } from "./forms"
-import { action, computed, makeObservable, observable } from "mobx"
-import { Children, Collections, Collection, format } from "."
+import { computed, makeObservable, observable } from "mobx"
+import { Children, Collections, Collection, format, Subscription_i } from "."
 import { Base } from "./base"
 
 
@@ -55,6 +55,7 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
     parentCollection?: Collection
     _children: Children
     dependents: Model[] = []
+    repoSub?: Subscription_i
 
     constructor(config?: ModelConfig_i<DataT, RepoT, FormT>) {
         super()
@@ -128,8 +129,6 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
     postLoad = async () => {
         /**
          * TO BE IMPLEMENTED
-         * 
-         * use this for setting form data
          */
     }
 
@@ -153,25 +152,39 @@ export class Model<DataT = any, RepoT extends BaseRepo|{[key: string]: BaseRepo}
         }
     }
     
+
+
+    
+
     loadModel = async () => {
         if(this.repo !== undefined && this.repo.state === 'loaded'){
             this._data = this.repo.data
         }
+        await this.loadChildren()
+        await this.loadDependents()
+        await this.postLoad()
     }
 
     load = async () => {
         // awaiting preload causes load to exit event loop before state can be set to loading
         this.asyncState = this.asyncState === 'loaded' ? 'reloading' : 'loading'
         await this.preLoad()
+
         await this.loadRepo()
         if (this.repo && this.repo.state === 'error') {
             this.asyncState = 'error'
             return
         }
-        await this.loadModel()
-        await this.loadChildren()
-        await this.loadDependents()
-        await this.postLoad()
+
+        if(this.repoSub === undefined){
+            await this.loadModel()
+        }
+        if(this.repo !== undefined && this.repoSub === undefined){
+            this.repoSub = this.repo.onLoad.subscribe(async ()=>{
+                await this.loadData(this.repo.data)
+            })
+        }
+
         this.asyncState = this.repo ? this.repo.state : 'loaded'
     }
 
@@ -329,19 +342,32 @@ export class CollectionModel<DataT extends Array<Record<any,any>> = any,
     loadCollections = async () => {
         await this._collections.load()
     }
-    load = async () => {
-        this.asyncState = 'loading'
-        await this.preLoad()
-        await this.loadRepo()
-        await this.loadModel()
-        if (this.repo && this.repo.state === 'error') {
-            this.asyncState = 'error'
-            return
+
+    loadModel = async () => {
+        if(this.repo !== undefined && this.repo.state === 'loaded'){
+            this._data = this.repo.data
         }
         await this.loadChildren()
         await this.loadCollections()
         await this.loadDependents()
         await this.postLoad()
+    }
+
+    load = async () => {
+        this.asyncState = 'loading'
+        await this.preLoad()
+        await this.loadRepo()
+        if (this.repo && this.repo.state === 'error') {
+            this.asyncState = 'error'
+            return
+        }
+        await this.loadModel()
+        if(this.repo !== undefined && this.repoSub === undefined){
+            this.repoSub = this.repo.onLoad.subscribe(async ()=>{
+                // console.log("REPO ON LOAD")
+                await this.loadData(this.repo.data)
+            })
+        }
         this.asyncState = 'loaded'
     }
 

@@ -1,7 +1,6 @@
 import { event_i, state_t } from "./types"
 import * as _ from "lodash"
 import { initConfig } from "./helpers"
-import { NotImplementedError } from "./errors"
 import { makeObservable, observable } from 'mobx'
 import { Base } from "./base"
 import { PubSub } from "./pubsub"
@@ -261,7 +260,6 @@ export const PeriodicRepo = <T extends BaseRepo>(repo: T, interval: number): T =
         if(!started){
             started = true
             setInterval(() => {
-                console.log(window.document.hidden, interval)
                 if(!window.document.hidden && window.document.hasFocus()){
                     repo.call()
                 }

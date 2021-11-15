@@ -1,5 +1,5 @@
 import * as _ from "lodash"
-import {classToClass} from 'class-transformer'
+import {classToClass, plainToClass} from 'class-transformer'
 import {validate, ValidationError} from 'class-validator'
 import { nestedKeys, initConfig } from "./helpers"
 import { computed, makeObservable, observable } from "mobx"
@@ -23,7 +23,8 @@ export const getErrors = async (v: any): Promise<{[key: string]: string}> => {
      *      contact.email: "error"
      * }
      */
-    const c = classToClass(v)
+    // const c = classToClass(v)
+    const c = v
     const errors = await validate(c)
     let out: any = {}
     const recurse = (root: string, errors: ValidationError[]) => {
@@ -270,8 +271,7 @@ export class FormModel<
         }
 
         const data = _.cloneDeep(this.payload)
-        const v = new this.validator()
-        Object.assign(v, data)
+        const v = plainToClass(this.validator, data)
         const errors = await getErrors(v)
         this.errors = this.convert<Record<keyof DataT, string>>(errors, this.inMap, {})
         this.state = Object.keys(this.errors).length == 0 ? 'valid' : 'invalid'

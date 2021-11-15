@@ -47,7 +47,7 @@ describe('empty config', () => {
         const model = new Model()
 
         expect(model.config).toStrictEqual(ModelConfigDefaults)
-    })    
+    })
     test('should be collection default object', () => {
         const model = new CollectionModel()
 
@@ -157,6 +157,35 @@ describe('repos tests', () => {
 
         expect(model.state).toBe('error')
     })
+
+    test('repo reload', async () => {
+        // should update the model data
+        const repo = new MockRepo({ data: 123, finalState: 'error' })
+        const model = new Model({
+            repos: repo
+        })
+
+        await model.load()
+        expect(model.data).toBe(123)
+        repo.data = 456
+        await repo.call()
+        await setTimeout(() => {
+            expect(model.data).toBe(456)
+        })
+    })
+
+    test('repo reload - collection', async () => {
+        const repo = new MockRepo({ data: [{ abc: 123 }, { abc: 456 }] })
+        const model = new CollectionModel({ collections: Model, repos: repo })
+        await model.load()
+
+        expect(model.collection.length).toBe(2)
+        repo.config.data = [{ abc: 123 }, { abc: 456 }, { abc: 789 }]
+        await repo.call()
+        await setTimeout(() => {
+            expect(model.collection.length).toBe(3)
+        })
+    })
 })
 
 
@@ -183,9 +212,9 @@ describe('model payload', () => {
 
 describe('testing types', () => {
     const repo = new MockRepo({ data: { abc: 123 } })
-    const form = new FormModel({}) 
+    const form = new FormModel({})
     test('Model', () => {
-        
+
         const m1 = new Model({ data: { xyz: 123, abc: 456 }, repos: { main: repo } })
 
         m1.data
@@ -193,8 +222,8 @@ describe('testing types', () => {
         // works
         m1.repos.main
 
-        const m2 = new Model({ 
-            data: { xyz: 123, abc: 456 }, 
+        const m2 = new Model({
+            data: { xyz: 123, abc: 456 },
             repos: repo,
             forms: form
         })
@@ -202,7 +231,7 @@ describe('testing types', () => {
         // works
         m2.repos.main
         m2.forms.main
-        
+
         // works
         // m2.forms.NotAForm
         // m2.repos.NotARepo
@@ -228,16 +257,16 @@ describe('testing types', () => {
     })
 
     test('Model w/ Inheritence', () => {
-        class NewModel extends Model<{abc: number}>{
+        class NewModel extends Model<{ abc: number }>{
             repos = {
                 main: repo
             }
             forms = {
                 main: form
             }
-            constructor(){
+            constructor() {
                 super({
-                    data: {abc: 123}
+                    data: { abc: 123 }
                 })
             }
         }
@@ -250,7 +279,7 @@ describe('testing types', () => {
         m.forms.main
 
 
-        class NewModel2 extends Model<{abc: number}>{
+        class NewModel2 extends Model<{ abc: number }>{
             repos = {
                 one: repo,
                 two: repo,
@@ -259,9 +288,9 @@ describe('testing types', () => {
                 one: form,
                 two: form
             }
-            constructor(){
+            constructor() {
                 super({
-                    data: {abc: 123}
+                    data: { abc: 123 }
                 })
             }
         }
@@ -280,8 +309,8 @@ describe('testing types', () => {
     })
 
     test('CollectionModel', () => {
-        const m1 = new CollectionModel({ 
-            data: [{ xyz: 123, abc: 456 }], 
+        const m1 = new CollectionModel({
+            data: [{ xyz: 123, abc: 456 }],
             repos: repo,
             forms: form
         })
@@ -292,10 +321,10 @@ describe('testing types', () => {
         m1.forms.main
 
 
-        const m2 = new CollectionModel({ 
-            data: [{ xyz: 123, abc: 456 }], 
-            repos: {one: repo, two: repo},
-            forms: {one: form, two: form}
+        const m2 = new CollectionModel({
+            data: [{ xyz: 123, abc: 456 }],
+            repos: { one: repo, two: repo },
+            forms: { one: form, two: form }
         })
 
         // works
@@ -318,7 +347,7 @@ describe('testing types', () => {
     })
 
     test('CollectionModel w/ Inheritence', () => {
-        class NewCollectionModel extends CollectionModel<{abc: number}[]>{
+        class NewCollectionModel extends CollectionModel<{ abc: number }[]>{
             repos = {
                 one: repo,
                 two: repo,
@@ -327,9 +356,9 @@ describe('testing types', () => {
                 one: form,
                 two: form
             }
-            constructor(){
+            constructor() {
                 super({
-                    data: [{abc: 123}]
+                    data: [{ abc: 123 }]
                 })
             }
         }
@@ -342,10 +371,10 @@ describe('testing types', () => {
         m.forms.one
         m.forms.two
 
-        class NewCollectionModel2 extends CollectionModel<{abc: number}[], BaseRepo, FormModel>{
-            constructor(){
+        class NewCollectionModel2 extends CollectionModel<{ abc: number }[], BaseRepo, FormModel>{
+            constructor() {
                 super({
-                    data: [{abc: 123}],
+                    data: [{ abc: 123 }],
                     repos: repo,
                     forms: form
                 })
@@ -364,7 +393,7 @@ describe('testing types', () => {
 
 
 
-describe('dependents', ()=>{
+describe('dependents', () => {
     test('load', async () => {
         const data = { abc: 123 }
         const repo = new MockRepo({ data })
@@ -396,16 +425,16 @@ describe('dependents', ()=>{
 })
 
 
-describe('get by', ()=>{
-    test('works', async ()=>{
-        class NewCollectionModel extends CollectionModel<{id: number}[], BaseRepo, FormModel>{
-            constructor(){
+describe('get by', () => {
+    test('works', async () => {
+        class NewCollectionModel extends CollectionModel<{ id: number }[], BaseRepo, FormModel>{
+            constructor() {
                 super({
-                    data: [{id: 123}, {id: 456}, {id: 456}],
+                    data: [{ id: 123 }, { id: 456 }, { id: 456 }],
                 })
             }
         }
-    
+
         const model = new NewCollectionModel()
         await model.load()
 
@@ -424,7 +453,7 @@ describe('get by', ()=>{
         expect(out.length).toBe(0)
         expect(out[0]).toBe(undefined)
 
-        
+
     })
 
 })

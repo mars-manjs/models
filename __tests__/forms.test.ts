@@ -6,6 +6,7 @@ import "reflect-metadata";
 
 class GreetingsValidator {
     @IsNumber()
+    @Max(50)
     //@ts-ignore
     hello: number
 }
@@ -23,21 +24,26 @@ class Validator {
 }
 
 
-const form = new FormModel({
-    validator: Validator,
-    data: {
-        name: "John Smith",
-        greetings: {
-            hello: 123,
-        },
-        world: "456"
-    },
-    keys: [
-        ["hello", "greetings.hello"],
-        ["world", { key: "world", cast: Number }]
-    ]
-})
+class TestForm extends FormModel {
+    constructor() {
+        super({
+            validator: Validator,
+            data: {
+                name: "John Smith",
+                greetings: {
+                    hello: 40,
+                },
+                world: 456
+            },
+            keys: [
+                ["hello", "greetings.hello"],
+                ["world", { key: "world", cast: Number }]
+            ]
+        })
+    }
+}
 
+const form = new TestForm()
 
 describe('empty config', () => {
     test('should be empty object', () => {
@@ -50,8 +56,8 @@ describe('empty config', () => {
 test('form configurations', () => {
     expect(form.data).toStrictEqual({
         name: "John Smith",
-        hello: 123,
-        world: "456"
+        hello: 40,
+        world: 456
     })
 
     expect(form.keys).toStrictEqual([
@@ -75,7 +81,7 @@ test('form cast map', () => {
 
 describe('convert', () => {
     test('basic', () => {
-        expect(form.convert(form.data, form['outMap'], form['outCast'])).toStrictEqual({ name: "John Smith", greetings: { hello: 123 }, world: 456 })
+        expect(form.convert(form.data, form['outMap'], form['outCast'])).toStrictEqual({ name: "John Smith", greetings: { hello: 40 }, world: 456 })
         expect(form.convert({ name: "John Smith", greetings: { hello: "123" }, world: 456 }, form['inMap'], form['inCast'])).toStrictEqual({ name: "John Smith", hello: "123", world: 456 })
     })
     test('empty list', () => {
@@ -92,27 +98,42 @@ describe('convert', () => {
     })
 })
 
-test('form validator', async () => {
-    await form.validate()
-    // console.log(await form.validate())
-    // console.log(form.state)
-    // console.log(form.errors)
+describe('form validator', () => {
+    test('is valid', async () => {
+        const form = new TestForm()
+        await form.validate()
+        console.log(JSON.stringify(form.errors))
 
-    // test state
-    expect(form.state).toBe('valid')
-    // test isValid
-    expect(form.isValid).toBeTruthy()
+        // test state
+        expect(form.state).toBe('valid')
+        // test isValid
+        expect(form.isValid).toBeTruthy()
+    })
 
+    test('is invalid', async () => {
+        const form = new TestForm()
+        // invalid form
+        form.onChange('world')('600')
+        await form.validate()
+        // test state
+        expect(form.state).toBe('invalid')
+        // test isValid
+        expect(form.isValid).toBeFalsy()
+    })
 
-
-    // invalid form
-    form.onChange('world')('600')
-    await form.validate()
-    // test state
-    expect(form.state).toBe('invalid')
-    // test isValid
-    expect(form.isValid).toBeFalsy()
+    test('is invalid nested', async ()=>{
+        const form = new TestForm()
+        
+        form.onChange('hello')(500)
+        // console.log("after onchange")
+        await form.validate()
+    
+        expect(form.state).toBe('invalid')
+        expect(form.isValid).toBeFalsy()
+        // console.log(form.errors)
+    })
 })
+
 
 test('test errors data structure', () => {
 
@@ -129,7 +150,9 @@ describe('form repo loading', () => {
         expect(form.data).toStrictEqual({})
         await repo.call()
         // console.log("postload data", form.data)
-        expect(form.data).toStrictEqual(data)
+        setTimeout(()=>{
+            expect(form.data).toStrictEqual(data)
+        }, 1000)
     })
 
     test('form repo load with convesions', async () => {
@@ -152,6 +175,7 @@ describe('form repo loading', () => {
         expect(form.data).toStrictEqual({})
         await repo.call()
         // console.log("data", form.data, form.payload, form.data.name, typeof form.data.number)
+        
         expect(form.data).toStrictEqual({
             name: "Hello",
             number: "123"

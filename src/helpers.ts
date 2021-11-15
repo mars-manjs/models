@@ -103,14 +103,17 @@ export class Collections {
     load = async () => {
         let promises = []
         const { data } = this.model
+        let tmp = {}
         if(!data) return
         for (const name of Object.keys(this.collectionsConfig)) {
             const modelObject = this.collectionsConfig[name]
             const collection = new Collection(this.model, data, modelObject)
-            this.collections[name] = collection
+            tmp[name] = collection
             promises.push(collection.load())
         }
         await Promise.all(promises)
+
+        this.collections = tmp
     }
 }
 
