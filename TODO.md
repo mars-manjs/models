@@ -10,6 +10,10 @@
 - [ ] test children
 
 
+## Repo
+APIRepo won't attempt to parse body if not status code 200
+- error message may be on body though!
+
 
 # Types
 ## CollectionModel
