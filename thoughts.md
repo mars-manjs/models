@@ -29,3 +29,6 @@
         model: Model,
         name: 'wikiSections'
     }
+
+# Collection
+- should be able to update collection without calling load of all CollectionItems

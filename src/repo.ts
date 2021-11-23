@@ -41,12 +41,12 @@ export class BaseRepo<DataT = any, PayloadT = any> extends Base {
         // console.log("YOOO!", config)
         if (config?.events?.onLoad) {
             this.onLoad.subscribe((data) => {
-                events.emit(config.events.onLoad.type, config.events.onLoad.data)
+                events.emit(config.events.onLoad.type, config.events.onLoad.data, data)
             })
         }
         if (config?.events?.onError) {
-            this.onError.subscribe(() => {
-                events.emit(config.events.onError.type, config.events.onError.data)
+            this.onError.subscribe((data) => {
+                events.emit(config.events.onError.type, config.events.onError.data, data)
             })
         }
         this.state = 'unloaded'
